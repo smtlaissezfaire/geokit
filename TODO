@@ -1,0 +1,18 @@
+TO-DO LIST
+==========
+
+Below is a list to to-do items that need to be completed prior to initial release.  Task
+assignment is designated by initials enclosed in preceeding parenthesis.  Those that are
+open are open for the taking:
+
+(BE) Test under PostgreSQL and refine SQL if necessary.
+
+(BE) Apply namespacing to classes and geocoders (e.g. GeoKit::Geocoders::YahooGeocoder)
+
+(BE) Sweep files for RDOC readiness.  Apply refinements where necessary.
+
+(BE) Consider combining geocoders into a single file.  
+
+(  ) Review and revise README to ensure its up-to-date.
+
+(  ) Review test coverage and ensure adequate for release.

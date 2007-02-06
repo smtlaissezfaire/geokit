@@ -1,0 +1,22 @@
+# This is your yahoo application key for the Yahoo Geocoder.
+# See http://developer.yahoo.com/faq/index.html#appid
+# and http://developer.yahoo.com/maps/rest/V1/geocode.html
+GeoKit::Geocoders::YAHOO='REPLACE_WITH_YOUR_YAHOO_KEY'
+    
+# This is your Google map/geocoder key. 
+# See http://www.google.com/apis/maps/signup.html
+# and http://www.google.com/apis/maps/documentation/#Geocoding_Examples
+GeoKit::Geocoders::GOOGLE='REPLACE_WITH_YOUR_GOOGLE_KEY'
+    
+# This is your username and password for geocoder.us.
+# If false, uses Geocoder.us free service. Otherwise, should be in format username:password
+# See http://geocoder.us
+# and http://geocoder.us/user/signup
+GeoKit::Geocoders::GEOCODER_US=false 
+
+# This is the order in which the geocoders are called in a failover scenario
+# If you only want to use a single geocoder, put a single symbol in the array.
+# Valid symbols are :google, :yahoo, and :us
+# Be aware that there are Terms of Use restrictions on how you can use the various geocoders.
+# Make sure you read up on relevant Terms of Use for each geocoder you are going to use.
+GeoKit::Geocoders::PROVIDER_ORDER=[:google,:us]
