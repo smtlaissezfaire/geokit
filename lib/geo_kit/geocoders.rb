@@ -89,6 +89,7 @@ module GeoKit
         url += add_ampersand(url) + "city=#{CGI.escape(location.city)}" if location.city
         url += add_ampersand(url) + "prov=#{location.state}" if location.state
         url += add_ampersand(url) + "postal=#{location.zip}" if location.zip
+        url += add_ampersand(url) + "auth=#{GeoKit::Geocoders::GEOCODER_CA}" if GeoKit::Geocoders::GEOCODER_CA
         url += add_ampersand(url) + "geoit=xml"
         'http://geocoder.ca/?' + url
       end

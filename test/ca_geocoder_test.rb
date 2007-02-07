@@ -1,5 +1,7 @@
 require File.dirname(__FILE__) + '/base_geocoder_test.rb'
 
+GeoKit::Geocoders::GEOCODER_CA = "SOMEKEYVALUE"
+
 class CaGeocoderTest < BaseGeocoderTest #:nodoc: all
   
   SUCCESS=<<-EOF
@@ -12,16 +14,16 @@ class CaGeocoderTest < BaseGeocoderTest #:nodoc: all
     @ca_full_loc = GeoKit::GeoLoc.new(@ca_full_hash)
   end  
   
-  def test_geocoder_with_geo_loc
+  def test_geocoder_with_geo_loc_with_account
     response = MockSuccess.new
     response.expects(:body).returns(SUCCESS)
-    Net::HTTP.expects(:get_response).with(URI.parse("http://geocoder.ca/?stno=2105&addresst=West+32nd+Avenue&city=Vancouver&prov=BC&geoit=xml")).returns(response)    
+    Net::HTTP.expects(:get_response).with(URI.parse("http://geocoder.ca/?stno=2105&addresst=West+32nd+Avenue&city=Vancouver&prov=BC&auth=SOMEKEYVALUE&geoit=xml")).returns(response)    
     verify(GeoKit::Geocoders::CaGeocoder.geocode(@ca_full_loc))    
   end
   
   def test_service_unavailable
     response = MockFailure.new
-    Net::HTTP.expects(:get_response).with(URI.parse("http://geocoder.ca/?stno=2105&addresst=West+32nd+Avenue&city=Vancouver&prov=BC&geoit=xml")).returns(response)    
+    Net::HTTP.expects(:get_response).with(URI.parse("http://geocoder.ca/?stno=2105&addresst=West+32nd+Avenue&city=Vancouver&prov=BC&auth=SOMEKEYVALUE&geoit=xml")).returns(response)    
     assert !GeoKit::Geocoders::CaGeocoder.geocode(@ca_full_loc).success   
   end  
   
