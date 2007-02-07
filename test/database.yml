@@ -4,6 +4,9 @@ mysql:
   username: root
   password:
   database: acts_as_mappable_plugin_test
-sqlite3:
-  adapter: sqlite3
-  dbfile: db/test.db
+postgresql:
+  adapter: postgresql
+  host: localhost
+  username: root
+  password: 
+  database: acts_as_mappable_plugin_test

@@ -184,7 +184,6 @@ module GeoKit
                   SIN(#{lat})*SIN(RADIANS(#{lat_column_name})))*#{multiplier})
                   SQL_END
           when "postgresql"
-            # Note: untested.
             sql=<<-SQL_END 
                   (ACOS(COS(#{lat})*COS(#{lng})*COS(RADIANS(#{lat_column_name}))*COS(RADIANS(#{lng_column_name}))+
                   COS(#{lat})*SIN(#{lng})*COS(RADIANS(#{lat_column_name}))*SIN(RADIANS(#{lng_column_name}))+
@@ -209,7 +208,6 @@ module GeoKit
                   POW(#{lng_degree_units}*(#{lng}-#{lng_column_name}),2))
                   SQL_END
           when "postgresql"
-            # Note: untested.
             sql=<<-SQL_END
                   SQRT(POW(#{lat_degree_units}*(#{lat}-#{lat_column_name}),2)+
                   POW(#{lng_degree_units}*(#{lng}-#{lng_column_name}),2))
