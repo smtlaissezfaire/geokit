@@ -1,28 +1,31 @@
-==============================================================
-GeoKit
-==============================================================
+------------------------------------- ( G E O K I T ) ---------------------------------------
+
+# FEATURE SUMMARY
 
 This plugin provides key functionality for location-oriented Rails applications:
+
 - Distance calculations, for both flat and spherical environments. For example, 
-  given the location of two points on the earth, you can calculate the miles/KM between them.
+  given the location of two points on the earth, you can calculate the miles/KM 
+  between them.
 - ActiveRecord distance-based finders. For example, you can find all the points 
   in your database within a 50-mile radius.
 - Geocoding from multiple providers. It currently supports Google, Yahoo, 
-  and Geocoder.us geocoders, and it provides a uniform response structure 
-  from all of them. It also provides a fail-over mechanism, in case your input 
-  fails to geocode in one service.
-- IP-based location lookup utilizing hostip.info. Provide an IP address, 
-  and get city name and latitude/longitude in return
+  Geocoder.us, and Geocoder.ca geocoders, and it provides a uniform response 
+  structure from all of them. It also provides a fail-over mechanism, in case 
+  your input fails to geocode in one service.
+- IP-based location lookup utilizing hostip.info. Provide an IP address, and get
+  city name and latitude/longitude in return
 - A before_filter helper to geocoder the user's location based on IP address, 
   and retain the location in a cookie.
   
 The goal of this plugin is to provide the common functionality for location-oriented 
-applications (geocoding, location lookup, distance calculation) in an easy-to-use package.
+applications (geocoding, location lookup, distance calculation) in an easy-to-use 
+package.
 
 # A NOTE ON TERMINOLOGY
-Throughout the code and API of this, latitude and longitude are refered to as lat and lng. 
-We've found over the long term the abbreviation saves lots of typing time.
 
+Throughout the code and API of this, latitude and longitude are refered to as lat 
+and lng.  We've found over the long term the abbreviation saves lots of typing time.
 
 # DISTANCE CALCULATIONS AND QUERIES
 
@@ -30,7 +33,7 @@ If you want only distance calculation services, you need only mix in the Mappabl
 module like so:
 
 class Location
-	include Mappable
+	include GeoKit::Mappable
 end
 
 After doing so, you can do things like:
@@ -70,6 +73,10 @@ class Location < ActiveRecord::Base
                     :distance_field_name => :distance
 end
 
+You can also define alternative column names for latitude and longitude using
+the :lat_column_name and :lng_column_name keys.  The defaults are 'lat' and
+'lng' respectively.
+
 Thereafter, a set of finder methods are made available.  Below are the 
 different combinations:
 
@@ -83,8 +90,8 @@ find(:all, :lat => 32.951613, :lng => -96.958444, )
 find(:all, :origin, :conditions => "distance < 5")
 - In addition to adding a distance column, substitutes the distance
   formula for the distance field in the conditions clause.  This saves
-  from having to add gory SQL in the conditions clause.  The result
-  set returns model instances that are less than 5 of the units away.
+  from having to add complicated SQL in the conditions clause.  The result
+  set returns model instances that are less than 5 units away.
   NOTE: conditions can also be compound as in 
   :conditions => "distance < 100 and state ='TX'".
 
@@ -109,17 +116,6 @@ distance_sql(origin, units=default_units, formula=default_formula)
 
 Thereafter, you are free to use it in find_by_sql as you wish.
 
-# LAT/LNG COLUMNS
-
-By default, the plugin expects to use columns named lat and lng on your
-Location object. If your table has differently named columns, you can overide 
-the default:
-class Location < ActiveRecord::Base
-   acts_as_mappable :lat_column_name=>'latitude', 
-                    :lng_column_name=>'longitude'
-end
-
-
 # IP GEOCODING
 
 You can obtain the location for an IP at any time using the geocoder
@@ -132,12 +128,17 @@ longitude, city, state, and country code.  Also, the success
 value is true.
 
 If the IP cannot be geocoded, a GeoLoc instance is returned with a
-success value of false.
+success value of false.  
 
+It should be noted that the IP address needs to be visible to the
+Rails application.  In other words, you need to ensure that the 
+requesting IP address is forwarded by any front-end servers that
+are out in front of the Rails app.  Otherwise, the IP will always
+be that of the front-end server.
 
 # IP GEOCODING HELPER
 
-A class method called locate_ip_address has been mixed into the 
+A class method called geocode_ip_address has been mixed into the 
 ActionController::Base.  This enables before_filter style lookup of
 the IP address.  Since it is a filter, it can accept any of the 
 available filter options.
@@ -158,17 +159,18 @@ cookie as they wish.
 The intent of this feature is to be able to provide a good guess as
 to a new visitor's location.
 
-
 # INTEGRATED FIND AND GEOCODING
 
 Geocoding has been integrated with the finders enabling you to pass
 a physical address or an IP address.  This would look the following:
 
 Location.find_farthest(:origin => '217.15.10.9')
+Location.find_farthest(:origin => 'Irving, TX')
 
-where the IP address would be geocoded to a location and then the 
-resulting latitude and longitude coordinates would be used in the 
-find.
+where the IP or physical address would be geocoded to a location and
+then the resulting latitude and longitude coordinates would be used 
+in the find.  This is not expected to be common usage, but it can be
+done nevertheless.
 
 # ADDRESS GEOCODING
 
@@ -190,6 +192,13 @@ instance is the result of the call.  This class has a "success"
 attribute which will be true if a successful geocoding occurred.  
 If successful, the lat and lng properties will be populated.
 
+Geocoders are named with the naming convention NameGeocoder.  This
+naming convention enables Geocoder to auto-detect its sub-classes
+in order to create methods called name_geocoder(address) so that
+all geocoders are called through the base class.  This is done 
+purely for convenience; the individual geocoder classes are expected
+to be used independently.
+
 The MultiGeocoder class requires the configuration of a provider
 order which dictates what order to use the various geocoders.  Ordering
 is done through the PROVIDER_ORDER constant found in environment.rb.
@@ -198,12 +207,12 @@ On installation, this plugin appends a template for your API keys to
 your environment.rb. 
 
 Make sure your failover configuration matches the usage characteristics 
-of your application -- for example, if you routinely
-get bogus input to geocode, your code will be much slower if you
-have to failover among multiple geocoders before determining that the
-input was in fact bogus. 
+of your application -- for example, if you routinely get bogus input to 
+geocode, your code will be much slower if you have to failover among 
+multiple geocoders before determining that the input was in fact bogus. 
 
 The Geocoder.geocode method returns a GeoLoc object. Basic usage:
+
 loc=Geocoder.geocode('100 Spear St, San Francisco, CA')
 if loc.success
   puts loc.lat
@@ -227,10 +236,9 @@ ActiveRecord::GeocodeError you must be prepared to catch. Alternatively,
 You can geocoder the address beforehand, and pass the resulting lat/lng
 into the finder if successful.
 
-
-==============================================================
+=================================================================================
 # HOW TO . . .
-
+=================================================================================
 
 ## How to install the GeoKit plugin 
 ruby script/plugin install geo_kit
@@ -247,6 +255,7 @@ ruby script/plugin install geo_kit
 3. find(:all, :lat => 32.951613, :lng => -96.958444, :conditions=>'distance<10')
 
 ## How to geocode an address
+
 1. configure your geocoder key(s) in environment.rb
 
 2. also in environment.rb, make sure that PROVIDER_ORDER reflects the 
@@ -255,15 +264,15 @@ ruby script/plugin install geo_kit
    PROVIDER_ORDER=[:google]
    
 3. Test it out in script/console
-   res=Geocoder.geocode('100 Spear St, San Francisco, CA')
+   res = Geocoder.geocode('100 Spear St, San Francisco, CA')
    puts res.lat
    puts res.lng
    puts res.full_address 
    ... etc. The return type is GeoLoc, see the API for 
    all the methods you can call on it.
 
-
 ## How to find all stores within 10 miles of a given address
+
 1. as above, ensure your table has the lat/lng columns, and you've
    applied acts_as_mappable to the Store model.
 
@@ -278,12 +287,15 @@ ruby script/plugin install geo_kit
 		           :conditions=>'distance<10')
 
 ## How to sort a query by distance from an origin
+
 You now have access to a 'distance' column, and you can use it
 as you would any other column. For example:
 		Store.find(:all, :origin=>'94117', :order=>'distance')
-==============================================================
-
+		
+=================================================================================
 # HIGH-LEVEL NOTES ON WHAT'S WHERE
+=================================================================================
+
 acts_as_mappable.rb, as you'd expect, contains the ActsAsMappable
 module which gets mixed into your models to provide the 
 location-based finder goodness.
@@ -292,25 +304,21 @@ mappable.rb contains the Mappable module, which provides basic
 distance calculation methods, i.e., calculating the distance
 between two points. 
 
-mappable.rb also contains GeoPoint and GeoLoc.
-GeoPoint is a simple container for latitude and longitude, but 
+mappable.rb also contains LatLng and GeoLoc.
+LatLng is a simple container for latitude and longitude, but 
 it's made more powerful by mixing in the above-mentioned Mappable
 module -- therefore, you can calculate easily the distance between two
-GeoPoint ojbects with distance=first.distance_to(other)
+LatLng ojbects with distance = first.distance_to(other)
 
 GeoLoc (also in mappable.rb) represents an address or location which
 has been geocoded. You can get the city, zipcode, street address, etc.
-from a GeoLoc object. GeoLoc extends GeoPoint, so you also get lat/lng
+from a GeoLoc object. GeoLoc extends LatLng, so you also get lat/lng
 AND the Mappable modeule goodness for free.
 
-google_geocoder.rb contains the Google geocoder.
+geocoders.rb contains the geocoder classes.
 
-yahoo_geocoder.rb contains the Yahoo geocoder.
-
-us_geocoder.rb contains the Geocoder.Us geocoder.
-
-multi_geocoder.rb contains the failover geocoder.
-
+ip_geocode_lookup.rb contains the before_filter helper method which
+enables auto lookup of the requesting IP address.
 
 # IMPORTANT NOTE: We have appended to your environment.rb file
 

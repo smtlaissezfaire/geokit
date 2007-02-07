@@ -88,12 +88,12 @@ module GeoKit
       @lng = lng
     end 
 
-    # Cast lat and lng to floats (if they were strings, distance calulations
-    # can fail later)
+    # Latitude attribute setter; stored as a float.
     def lat=(lat)
       @lat = lat.to_f if lat
     end
 
+    # Longitude attribute setter; stored as a float;
     def lng=(lng)
       @lng=lng.to_f if lng
     end  
@@ -116,23 +116,23 @@ module GeoKit
   # the "full address" method for geocoders that do not provide a 
   # full address in their results (for example, Yahoo), and the "is_us" method.
   class GeoLoc < LatLng
-    # notes on non-obvious fields:
-    #  street_address doesn't include city, etc. Example: 100 Spear st.
-    #  full_address is the whole thing, including country: 100 Spear St, San Francisco, CA, 94101, USA
-    #  success: check this to see if the geocoding succeeded or not. 
-    #   Failure could be due to connectivity, bogus address, or bad API key
-    #  precision is the geocoder's report of how accurate the result is 
-    #   (address-level, zipcode level,etc)
-    attr_accessor :success,:country_code,:city,:state,:zip,:street_address, :provider, :full_address, :precision
+    # Location attributes.  Full address is a concatenation of all values.  For example:
+    # 100 Spear St, San Francisco, CA, 94101, US
+    attr_accessor :street_address, :city, :state, :zip, :country_code, :full_address
+    # Attributes set upon return from geocoding.  Success will be true for successful
+    # geocode lookups.  The provider will be set to the name of the providing geocoder.
+    # Finally, precision is an indicator of the accuracy of the geocoding.
+    attr_accessor :success, :provider, :precision
+    # Street number and street name are extracted from the street address attribute.
     attr_reader :street_number, :street_name
 
+    # Constructor expects a hash of symbols to correspond with attributes.
     def initialize(h={})
-      self.street_address=h[:street_address] 
-      self.city=h[:city] 
-      self.state=h[:state] 
-      self.zip=h[:zip] 
-      self.country_code=h[:country_code] 
-
+      @street_address=h[:street_address] 
+      @city=h[:city] 
+      @state=h[:state] 
+      @zip=h[:zip] 
+      @country_code=h[:country_code] 
       @success=false
       @precision='unknown'
       super(h[:lat],h[:lng])
@@ -190,6 +190,5 @@ module GeoKit
     def to_s
       "Provider: #{provider}\n Street: #{street_address}\nCity: #{city}\nState: #{state}\nZip: #{zip}\nLatitude: #{lat}\nLongitude: #{lng}\nCountry: #{country_code}\nSuccess: #{success}"
     end
-
   end
 end

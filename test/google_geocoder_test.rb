@@ -14,8 +14,8 @@ class GoogleGeocoderTest < BaseGeocoderTest #:nodoc: all
   
   def setup
     super
-    @google_full_hash = {:street_address=>"100 SPEAR ST", :city=>"SAN FRANCISCO", :state=>"CA", :zip=>"94105", :country_code=>"US"}
-    @google_city_hash = {:city=>"SAN FRANCISCO", :state=>"CA"}
+    @google_full_hash = {:street_address=>"100 Spear St", :city=>"San Francisco", :state=>"CA", :zip=>"94105", :country_code=>"US"}
+    @google_city_hash = {:city=>"San Francisco", :state=>"CA"}
 
     @google_full_loc = GeoKit::GeoLoc.new(@google_full_hash)
     @google_city_loc = GeoKit::GeoLoc.new(@google_city_hash)

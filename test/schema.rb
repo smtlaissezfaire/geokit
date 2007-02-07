@@ -13,8 +13,6 @@ ActiveRecord::Schema.define(:version => 0) do
     t.column :lng,         :decimal, :precision => 15, :scale => 10
   end
   
-  add_index :locations, [:company_id], :name => "locations_company_id_index"
-  
   create_table :custom_locations, :force => true do |t|
     t.column :company_id,  :integer, :default => 0,  :null => false
     t.column :street,      :string,  :limit => 60
@@ -24,6 +22,4 @@ ActiveRecord::Schema.define(:version => 0) do
     t.column :latitude,    :decimal, :precision => 15, :scale => 10
     t.column :longitude,   :decimal, :precision => 15, :scale => 10
   end
-  
-  add_index :custom_locations, [:company_id], :name => "custom_locations_company_id_index"  
 end
