@@ -2,6 +2,7 @@
 
 # FEATURE SUMMARY
 
+
 This plugin provides key functionality for location-oriented Rails applications:
 
 - Distance calculations, for both flat and spherical environments. For example, 
