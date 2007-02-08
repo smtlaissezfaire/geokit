@@ -185,9 +185,10 @@ sequence to increase the probability of successful geocoding.
 
 All classes are called using the following signature:
 
-location = Geocoder.geocode(address)
+include GeoKit::Geocoders
+location = XxxGeocoder.geocode(address)
 
-where you replace Geocoder with the appropriate class.  A GeoLoc
+where you replace Xxx Geocoder with the appropriate class.  A GeoLoc
 instance is the result of the call.  This class has a "success"
 attribute which will be true if a successful geocoding occurred.  
 If successful, the lat and lng properties will be populated.
@@ -241,7 +242,10 @@ into the finder if successful.
 =================================================================================
 
 ## How to install the GeoKit plugin 
-ruby script/plugin install geo_kit
+cd [APP_ROOT]
+ruby script/plugin install svn://rubyforge.org/var/svn/geokit/trunk
+  or, to install as an external (your project must be version controlled):
+ruby script/plugin install -x svn://rubyforge.org/var/svn/geokit/trunk
 
 ## How to find all stores within a 10-mile radius of a given lat/lng
 1. ensure your stores table has lat and lng columns with numeric or float 
@@ -264,7 +268,8 @@ ruby script/plugin install geo_kit
    PROVIDER_ORDER=[:google]
    
 3. Test it out in script/console
-   res = Geocoder.geocode('100 Spear St, San Francisco, CA')
+   include GeoKit::Geocoders
+   res = MultiGeocoder.geocode('100 Spear St, San Francisco, CA')
    puts res.lat
    puts res.lng
    puts res.full_address 
@@ -278,7 +283,7 @@ ruby script/plugin install geo_kit
 
 2. configure and test out your geocoder, as above
 
-3. pass the address in as :origin :
+3. pass the address in under the :origin key
 		Store.find(:all, :origin=>'100 Spear st, San Francisco, CA', 
 		           :conditions=>'distance<10')
 
