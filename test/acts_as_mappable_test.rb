@@ -223,6 +223,11 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
     assert_equal 5, locations.size 
   end  
   
+  def test_find_with_custom_distance_condition_using_custom_origin
+    locations = CustomLocation.find(:all, :origin => @custom_loc_a, :conditions => "dist < 3.97")
+    assert_equal 5, locations.size 
+  end
+  
   def test_find_within_with_custom
     locations = CustomLocation.find_within(3.97, :origin => @loc_a)
     assert_equal 5, locations.size    

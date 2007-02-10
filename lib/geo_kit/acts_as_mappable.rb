@@ -173,8 +173,8 @@ module GeoKit
         # Returns the distance SQL using the spherical world formula (Haversine).  The SQL is tuned
         # to the database in use.
         def sphere_distance_sql(origin, units)
-          lat = deg2rad(origin.lat)
-          lng = deg2rad(origin.lng)
+          lat = deg2rad(extract_latitude(origin))
+          lng = deg2rad(extract_longitude(origin))
           multiplier = units_sphere_multiplier(units)
           case connection.adapter_name.downcase
           when "mysql"
@@ -197,9 +197,9 @@ module GeoKit
         # Returns the distance SQL using the flat-world formula (Phythagorean Theory).  The SQL is tuned
         # to the database in use.
         def flat_distance_sql(origin, units)
-          lat = origin.lat 
+          lat = extract_latitude(origin) 
           lat_degree_units = units_per_latitude_degree(units)
-          lng = origin.lng
+          lng = extract_longitude(origin)
           lng_degree_units = units_per_longitude_degree(lat, units)
           case connection.adapter_name.downcase
           when "mysql"
@@ -215,6 +215,24 @@ module GeoKit
           else
             sql = "unhandled #{connection.adapter_name.downcase} adapter"
           end
+        end
+        
+        # Extract the latitude from the origin by trying the lat or latitude methods first
+        # and then making the assumption this is an instance of the kind of classes we are
+        # trying to find.
+        def extract_latitude(origin)
+          return origin.lat if origin.methods.include?('lat')
+          return origin.latitude if origin.methods.include?('latitude')
+          return eval("origin.#{lat_column_name}") if origin.instance_of?(self)
+        end
+        
+        # Extract the longitude from the origin by trying the lng or longitude methods first
+        # and then making the assumption this is an instance of the kind of classes we are
+        # trying to find.
+        def extract_longitude(origin)
+          return origin.lng if origin.methods.include?('lng')
+          return origin.longitude if origin.methods.include?('longitude')    
+          return eval("origin.#{lng_column_name}") if origin.instance_of?(self)      
         end
       end
     end
