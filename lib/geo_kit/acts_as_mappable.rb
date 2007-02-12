@@ -62,8 +62,10 @@ module GeoKit
         def find(*args)
           options = extract_options_from_args!(args)
           origin = extract_origin_from_options(options)
-          add_distance_to_select(options, origin) if origin
-          substitute_distance_in_conditions(options, origin) if origin && options.has_key?(:conditions)
+          units = extract_units_from_options(options)
+          formula = extract_formula_from_options(options)
+          add_distance_to_select(options, origin, units, formula) if origin
+          substitute_distance_in_conditions(options, origin, units, formula) if origin && options.has_key?(:conditions)
           args.push(options)
           super(*args)
         end     
@@ -123,6 +125,24 @@ module GeoKit
           origin
         end
         
+        # Extract the units out of the options if it exists and returns it.  If
+        # there is no :units key, it uses the default.  The side effect of the 
+        # method is to remove the :units key from the options hash.
+        def extract_units_from_options(options)
+          units = options[:units] || default_units
+          options.delete(:units)
+          units
+        end
+        
+        # Extract the formula out of the options if it exists and returns it.  If
+        # there is no :formula key, it uses the default.  The side effect of the 
+        # method is to remove the :formula key from the options hash.
+        def extract_formula_from_options(options)
+          formula = options[:formula] || default_formula
+          options.delete(:formula)
+          formula
+        end
+        
         # Geocodes the origin which was passed in String form.  The string needs
         # to be classified so that the appropriate geocoding technique can be 
         # used.  Strings can be either IP addresses or physical addresses.  The
@@ -148,9 +168,9 @@ module GeoKit
         end
 
         # Augments the select with the distance SQL.
-        def add_distance_to_select(options, origin)
+        def add_distance_to_select(options, origin, units=default_units, formula=default_formula)
           if origin
-            distance_selector = distance_sql(origin, default_units, default_formula) + " AS #{distance_column_name}"
+            distance_selector = distance_sql(origin, units, formula) + " AS #{distance_column_name}"
             selector = options.has_key?(:select) && options[:select] ? options[:select] : "*"
             options[:select] = "#{selector}, #{distance_selector}"  
           end   
@@ -160,11 +180,11 @@ module GeoKit
         # passed in and the distance column exists, we leave it to be flagged as bad SQL by the database.
         # Conditions are either a string or an array.  In the case of an array, the first entry contains
         # the condition.
-        def substitute_distance_in_conditions(options, origin)
+        def substitute_distance_in_conditions(options, origin, units=default_units, formula=default_formula)
           original_conditions = options[:conditions]
           condition = original_conditions.is_a?(String) ? original_conditions : original_conditions.first
           pattern = Regexp.new("\s*#{distance_column_name}(\s<>=)*")
-          condition = condition.gsub(pattern, distance_sql(origin, default_units, default_formula))
+          condition = condition.gsub(pattern, distance_sql(origin, units, formula))
           original_conditions = condition if original_conditions.is_a?(String)
           original_conditions[0] = condition if original_conditions.is_a?(Array)
           options[:conditions] = original_conditions

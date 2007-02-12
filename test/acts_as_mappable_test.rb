@@ -76,6 +76,16 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
     assert_equal 5, locations.size
   end 
   
+  def test_find_with_distance_condition_with_units_override
+    locations = Location.find(:all, :origin => @loc_a, :units => :kms, :conditions => "distance < 6.387")
+    assert_equal 5, locations.size
+  end
+  
+  def test_find_with_distance_condition_with_formula_override
+    locations = Location.find(:all, :origin => @loc_a, :formula => :flat, :conditions => "distance < 6.387")
+    assert_equal 6, locations.size
+  end
+  
   def test_find_within
     locations = Location.find_within(3.97, :origin => @loc_a)
     assert_equal 5, locations.size    
