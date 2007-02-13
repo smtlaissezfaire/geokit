@@ -34,12 +34,12 @@ module GeoKit
         case formula
         when :sphere          
           units_sphere_multiplier(units) * 
-              Math.acos( Math.sin(deg2rad(from.lat)) * Math.sin(deg2rad(to.lat)) + 
-              Math.cos(deg2rad(from.lat)) * Math.cos(deg2rad(to.lat)) * 
-              Math.cos(deg2rad(to.lng) - deg2rad(from.lng)))   
+              Math.acos( Math.sin(deg2rad(get_lat(from))) * Math.sin(deg2rad(get_lat(to))) + 
+              Math.cos(deg2rad(get_lat(from))) * Math.cos(deg2rad(get_lat(to))) * 
+              Math.cos(deg2rad(get_lng(to)) - deg2rad(get_lng(from))))   
         when :flat
-          Math.sqrt((units_per_latitude_degree(units)*(from.lat-to.lat))**2 + 
-              (units_per_longitude_degree(from.lat, units)*(from.lng-to.lng))**2)
+          Math.sqrt((units_per_latitude_degree(units)*(get_lat(from)-get_lat(to)))**2 + 
+              (units_per_longitude_degree(get_lat(from), units)*(get_lng(from)-get_lng(to)))**2)
         end
       end
     
@@ -63,6 +63,26 @@ module GeoKit
       def units_per_longitude_degree(lat, units)
         miles_per_longitude_degree = (LATITUDE_DEGREES * Math.cos(lat * PI_DIV_RAD)).abs
         units == :miles ? miles_per_longitude_degree : miles_per_longitude_degree * KMS_PER_MILE
+      end
+      
+      # Ensure proper latitude is returned for Mappable instances that have invoked acts_as_mappable
+      # and potentially customized the latitude attribute.  Otherwise, fall back to default lat
+      # attribute.
+      def get_lat(point)
+        acting_as_mappable?(point) ? eval("point.#{point.class.lat_column_name}") : point.lat
+      end
+      
+      # Ensure proper longitude is returned for Mappable instances that have invoked acts_as_mappable
+      # and potentially customized the longitude attribute.  Otherwise, fall back to default lng
+      # attribute.
+      def get_lng(point)
+        acting_as_mappable?(point) ? eval("point.#{point.class.lng_column_name}") : point.lng
+      end
+      
+      # Returns true if the object knows acts_as_mappable and has actually invoked it.  Using the 
+      # class attribute distance_column_name as a marker attribute.
+      def acting_as_mappable?(point)
+        point.class.respond_to?(:acts_as_mappable) && point.class.respond_to?(:distance_column_name)
       end
     end
   

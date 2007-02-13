@@ -64,6 +64,11 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
     @custom_loc_e = custom_locations(:e)    
   end
   
+  def test_custom_attributes_distance_calculations
+    assert_equal 0, @custom_loc_a.distance_to(@loc_a)
+    assert_equal 0, CustomLocation.distance_between(@custom_loc_a, @loc_a)
+  end
+  
   def test_distance_column_in_select
     locations = Location.find(:all, :origin => @loc_a, :order => "distance ASC")
     assert_equal 6, locations.size
