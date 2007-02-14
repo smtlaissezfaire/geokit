@@ -287,5 +287,10 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
   
   def test_find_farthest_with_coordinates_with_custom
     assert_equal @custom_loc_e, CustomLocation.find_farthest(:lat => @loc_a.lat, :lng => @loc_a.lng)
-  end  
+  end
+  
+  def test_find_with_array_origin
+    locations = Location.find(:all, :origin =>[@loc_a.lat,@loc_a.lng], :conditions => "distance < 3.97")
+    assert_equal 5, locations.size
+  end
 end

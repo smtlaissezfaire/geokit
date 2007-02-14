@@ -118,6 +118,7 @@ module GeoKit
         def extract_origin_from_options(options)
           origin = options[:origin]
           origin = geocode_origin(origin) if origin && origin.is_a?(String)
+          origin = GeoKit::LatLng.new(options[:origin][0], options[:origin][1]) if origin && origin.is_a?(Array)
           unless origin  
             origin = GeoKit::LatLng.new(options[:lat], options[:lng]) if options[:lat] && options[:lng]
           end
