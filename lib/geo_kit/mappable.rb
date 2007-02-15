@@ -29,18 +29,27 @@ module GeoKit
       # :units - valid values are :miles or :kms (:miles is the default)
       # :formula - valid values are :flat or :sphere (:sphere is the default)
       def distance_between(from, to, options={})
+        from_point = from && from.is_a?(String) ? geocode(from) : from
+        to_point = to && to.is_a?(String) ? geocode(to) : to
         units = options[:units]  || :miles
         formula = options[:formula] || :sphere
         case formula
         when :sphere          
           units_sphere_multiplier(units) * 
-              Math.acos( Math.sin(deg2rad(get_lat(from))) * Math.sin(deg2rad(get_lat(to))) + 
-              Math.cos(deg2rad(get_lat(from))) * Math.cos(deg2rad(get_lat(to))) * 
-              Math.cos(deg2rad(get_lng(to)) - deg2rad(get_lng(from))))   
+              Math.acos( Math.sin(deg2rad(get_lat(from_point))) * Math.sin(deg2rad(get_lat(to_point))) + 
+              Math.cos(deg2rad(get_lat(from_point))) * Math.cos(deg2rad(get_lat(to_point))) * 
+              Math.cos(deg2rad(get_lng(to_point)) - deg2rad(get_lng(from_point))))   
         when :flat
-          Math.sqrt((units_per_latitude_degree(units)*(get_lat(from)-get_lat(to)))**2 + 
-              (units_per_longitude_degree(get_lat(from), units)*(get_lng(from)-get_lng(to)))**2)
+          Math.sqrt((units_per_latitude_degree(units)*(get_lat(from_point)-get_lat(to_point)))**2 + 
+              (units_per_longitude_degree(get_lat(from_point), units)*(get_lng(from_point)-get_lng(to_point)))**2)
         end
+      end
+      
+      # Geocodes a location using the multi geocoder.
+      def geocode(location)
+        res = Geocoders::MultiGeocoder.geocode(location)
+        return res if res.success
+        raise Geocoders::GeocodeError      
       end
     
       protected

@@ -17,6 +17,8 @@ ActiveRecord::Base.establish_connection(config[ENV['DB'] || 'mysql'])
 # Establish test tables.
 load(File.dirname(__FILE__) + "/schema.rb")
 
+GeoKit::Geocoders::PROVIDER_ORDER=[:google,:us]
+
 # Uses defaults
 class Company < ActiveRecord::Base #:nodoc: all
   has_many :locations
@@ -62,6 +64,17 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
     @custom_loc_a = custom_locations(:a)
     @loc_e = locations(:e)
     @custom_loc_e = custom_locations(:e)    
+  end
+  
+  def test_distance_between_geocoded
+    GeoKit::Geocoders::MultiGeocoder.expects(:geocode).with("Irving, TX").returns(@location_a)
+    GeoKit::Geocoders::MultiGeocoder.expects(:geocode).with("San Francisco, CA").returns(@location_a)
+    assert_equal 0, Location.distance_between("Irving, TX", "San Francisco, CA") 
+  end
+  
+  def test_distance_to_geocoded
+    GeoKit::Geocoders::MultiGeocoder.expects(:geocode).with("Irving, TX").returns(@location_a)
+    assert_equal 0, @custom_loc_a.distance_to("Irving, TX") 
   end
   
   def test_custom_attributes_distance_calculations
