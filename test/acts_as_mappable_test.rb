@@ -77,6 +77,11 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
     assert_equal 0, @custom_loc_a.distance_to("Irving, TX") 
   end
   
+  def test_distance_to_geocoded_error
+    GeoKit::Geocoders::MultiGeocoder.expects(:geocode).with("Irving, TX").returns(GeoKit::GeoLoc.new)
+    assert_raise(GeoKit::Geocoders::GeocodeError) { @custom_loc_a.distance_to("Irving, TX")  }
+  end
+  
   def test_custom_attributes_distance_calculations
     assert_equal 0, @custom_loc_a.distance_to(@loc_a)
     assert_equal 0, CustomLocation.distance_between(@custom_loc_a, @loc_a)

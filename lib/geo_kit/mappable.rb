@@ -49,7 +49,7 @@ module GeoKit
       def geocode(location)
         res = Geocoders::MultiGeocoder.geocode(location)
         return res if res.success
-        raise Geocoders::GeocodeError      
+        raise GeoKit::Geocoders::GeocodeError      
       end
     
       protected
