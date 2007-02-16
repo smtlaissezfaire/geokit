@@ -68,6 +68,7 @@ module GeoKit
           units = extract_units_from_options(options)
           formula = extract_formula_from_options(options)
           add_distance_to_select(options, origin, units, formula) if origin
+          apply_find_scope(args, options)
           substitute_distance_in_conditions(options, origin, units, formula) if origin && options.has_key?(:conditions)
           args.push(options)
           super(*args)
@@ -113,6 +114,17 @@ module GeoKit
         end   
 
         private
+        
+        def apply_find_scope(args, options)
+          case args.first
+            when :nearest
+              args[0] = :first
+              options[:order] = "#{distance_column_name} ASC"
+            when :farthest
+              args[0] = :first
+              options[:order] = "#{distance_column_name} DESC"
+          end
+        end
 
         # Extracts the origin instance out of the options if it exists and returns
         # it.  If there is no origin, looks for latitude and longitude values to 

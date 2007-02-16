@@ -143,12 +143,20 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
     assert_equal @loc_a, Location.find_nearest(:origin => @loc_a)
   end
   
+  def test_find_nearest_through_find
+     assert_equal @loc_a, Location.find(:nearest, :origin => @loc_a)
+  end
+  
   def test_find_nearest_with_coordinates
     assert_equal @loc_a, Location.find_nearest(:origin =>[@loc_a.lat, @loc_a.lng])
   end
   
   def test_find_farthest
     assert_equal @loc_e, Location.find_farthest(:origin => @loc_a)
+  end
+  
+  def test_find_farthest_through_find
+    assert_equal @loc_e, Location.find(:farthest, :origin => @loc_a)
   end
   
   def test_find_farthest_with_coordinates
