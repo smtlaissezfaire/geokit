@@ -115,7 +115,7 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
   end
   
   def test_find_within_with_coordinates
-    locations = Location.find_within(3.97, :lat => @loc_a.lat, :lng => @loc_a.lng)
+    locations = Location.find_within(3.97, :origin =>[@loc_a.lat,@loc_a.lng])
     assert_equal 5, locations.size    
   end
   
@@ -135,7 +135,7 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
   end
   
   def test_find_beyond_with_coordinates
-    locations = Location.find_beyond(3.95, :lat => @loc_a.lat, :lng => @loc_a.lng)
+    locations = Location.find_beyond(3.95, :origin =>[@loc_a.lat, @loc_a.lng])
     assert_equal 1, locations.size    
   end
   
@@ -144,7 +144,7 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
   end
   
   def test_find_nearest_with_coordinates
-    assert_equal @loc_a, Location.find_nearest(:lat => @loc_a.lat, :lng => @loc_a.lng)
+    assert_equal @loc_a, Location.find_nearest(:origin =>[@loc_a.lat, @loc_a.lng])
   end
   
   def test_find_farthest
@@ -152,7 +152,7 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
   end
   
   def test_find_farthest_with_coordinates
-    assert_equal @loc_e, Location.find_farthest(:lat => @loc_a.lat, :lng => @loc_a.lng)
+    assert_equal @loc_e, Location.find_farthest(:origin =>[@loc_a.lat, @loc_a.lng])
   end
   
   def test_scoped_distance_column_in_select
@@ -267,7 +267,7 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
   end
   
   def test_find_within_with_coordinates_with_custom
-    locations = CustomLocation.find_within(3.97, :lat => @loc_a.lat, :lng => @loc_a.lng)
+    locations = CustomLocation.find_within(3.97, :origin =>[@loc_a.lat, @loc_a.lng])
     assert_equal 5, locations.size    
   end
   
@@ -287,7 +287,7 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
   end
   
   def test_find_beyond_with_coordinates_with_custom
-    locations = CustomLocation.find_beyond(3.95, :lat => @loc_a.lat, :lng => @loc_a.lng)
+    locations = CustomLocation.find_beyond(3.95, :origin =>[@loc_a.lat, @loc_a.lng])
     assert_equal 1, locations.size    
   end
   
@@ -296,7 +296,7 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
   end
   
   def test_find_nearest_with_coordinates_with_custom
-    assert_equal @custom_loc_a, CustomLocation.find_nearest(:lat => @loc_a.lat, :lng => @loc_a.lng)
+    assert_equal @custom_loc_a, CustomLocation.find_nearest(:origin =>[@loc_a.lat, @loc_a.lng])
   end
   
   def test_find_farthest_with_custom
@@ -304,7 +304,7 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
   end
   
   def test_find_farthest_with_coordinates_with_custom
-    assert_equal @custom_loc_e, CustomLocation.find_farthest(:lat => @loc_a.lat, :lng => @loc_a.lng)
+    assert_equal @custom_loc_e, CustomLocation.find_farthest(:origin =>[@loc_a.lat, @loc_a.lng])
   end
   
   def test_find_with_array_origin

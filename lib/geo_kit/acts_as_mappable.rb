@@ -3,9 +3,12 @@ module GeoKit
   # When mixed in, augments find services such that they provide distance calculation
   # query services.  The find method accepts additional options:
   #
-  # * :origin - which contains an object which has lat and lng attributes
-  # * :lat, :lng - in lieue of an origin, specific lat and lng attributes can be specified
-  # 
+  # * :origin - can be 
+  #   1. a two-element array of latititude/longitude -- :origin=>[37.792,-122.393]
+  #   2. a geocodeable string -- :origin=>'100 Spear st, San Francisco, CA'
+  #   3. an object which responds to lat and lng methods, or latitude and longitude methods,
+  #      or whatever methods you have specified for lng_column_name and lat_column_name
+  #      
   # Other finder methods are provided for specific queries.  These are:
   #
   # * find_within (alias: find_inside)
@@ -117,13 +120,13 @@ module GeoKit
         # option keys from the hash.
         def extract_origin_from_options(options)
           origin = options[:origin]
-          origin = geocode_origin(origin) if origin && origin.is_a?(String)
-          origin = GeoKit::LatLng.new(options[:origin][0], options[:origin][1]) if origin && origin.is_a?(Array)
-          unless origin  
-            origin = GeoKit::LatLng.new(options[:lat], options[:lng]) if options[:lat] && options[:lng]
+          if origin
+              res = geocode_origin(origin) if origin.is_a?(String)
+              res = GeoKit::LatLng.new(options[:origin][0], options[:origin][1]) if origin.is_a?(Array)
+              res = GeoKit::LatLng.new(extract_latitude(origin), extract_longitude(origin)) unless res
           end
-          [:origin, :lat, :lng].each {|option| options.delete(option)}
-          origin
+          options.delete(:origin)
+          res
         end
         
         # Extract the units out of the options if it exists and returns it.  If
@@ -194,8 +197,8 @@ module GeoKit
         # Returns the distance SQL using the spherical world formula (Haversine).  The SQL is tuned
         # to the database in use.
         def sphere_distance_sql(origin, units)
-          lat = deg2rad(extract_latitude(origin))
-          lng = deg2rad(extract_longitude(origin))
+          lat = deg2rad(origin.lat)
+          lng = deg2rad(origin.lng)
           multiplier = units_sphere_multiplier(units)
           case connection.adapter_name.downcase
           when "mysql"
@@ -218,20 +221,18 @@ module GeoKit
         # Returns the distance SQL using the flat-world formula (Phythagorean Theory).  The SQL is tuned
         # to the database in use.
         def flat_distance_sql(origin, units)
-          lat = extract_latitude(origin) 
           lat_degree_units = units_per_latitude_degree(units)
-          lng = extract_longitude(origin)
-          lng_degree_units = units_per_longitude_degree(lat, units)
+          lng_degree_units = units_per_longitude_degree(origin.lat, units)
           case connection.adapter_name.downcase
           when "mysql"
             sql=<<-SQL_END
-                  SQRT(POW(#{lat_degree_units}*(#{lat}-#{lat_column_name}),2)+
-                  POW(#{lng_degree_units}*(#{lng}-#{lng_column_name}),2))
+                  SQRT(POW(#{lat_degree_units}*(#{origin.lat}-#{lat_column_name}),2)+
+                  POW(#{lng_degree_units}*(#{origin.lng}-#{lng_column_name}),2))
                   SQL_END
           when "postgresql"
             sql=<<-SQL_END
-                  SQRT(POW(#{lat_degree_units}*(#{lat}-#{lat_column_name}),2)+
-                  POW(#{lng_degree_units}*(#{lng}-#{lng_column_name}),2))
+                  SQRT(POW(#{lat_degree_units}*(#{origin.lat}-#{lat_column_name}),2)+
+                  POW(#{lng_degree_units}*(#{origin.lng}-#{lng_column_name}),2))
                   SQL_END
           else
             sql = "unhandled #{connection.adapter_name.downcase} adapter"
