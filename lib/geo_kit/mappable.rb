@@ -78,14 +78,14 @@ module GeoKit
       # and potentially customized the latitude attribute.  Otherwise, fall back to default lat
       # attribute.
       def get_lat(point)
-        acting_as_mappable?(point) ? eval("point.#{point.class.lat_column_name}") : point.lat
+        acting_as_mappable?(point) ? eval("point.#{point.class.lat_column_name}.to_f") : point.lat
       end
       
       # Ensure proper longitude is returned for Mappable instances that have invoked acts_as_mappable
       # and potentially customized the longitude attribute.  Otherwise, fall back to default lng
       # attribute.
       def get_lng(point)
-        acting_as_mappable?(point) ? eval("point.#{point.class.lng_column_name}") : point.lng
+        acting_as_mappable?(point) ? eval("point.#{point.class.lng_column_name}.to_f") : point.lng
       end
       
       # Returns true if the object knows acts_as_mappable and has actually invoked it.  Using the 
