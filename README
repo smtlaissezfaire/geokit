@@ -78,26 +78,32 @@ the :lat_column_name and :lng_column_name keys.  The defaults are 'lat' and
 Thereafter, a set of finder methods are made available.  Below are the 
 different combinations:
 
-    find(:all, :origin)
+Origin as a two-element array of latititude/longitude:
 
-Adds the distance from origin into the result set named as the distance
-field name:
+		find(:all, :origin=>[37.792,-122.393])
 
-    find(:all, :lat => 32.951613, :lng => -96.958444, )
+Origin as a geocodeable string:
 
-Same as above, but uses the coordinates to form the origin:
+		find(:all, :origin=>'100 Spear st, San Francisco, CA')
 
-    find(:all, :origin, :conditions => "distance < 5")
+Origin as an object which responds to lat and lng methods, 
+or latitude and longitude methods, or whatever methods you have 
+specified for lng_column_name and lat_column_name:
+
+		find(:all, :origin=>my_store) # my_store.lat and my_store.lng methods exist
 
 In addition to adding a distance column, substitutes the distance
 formula for the distance field in the conditions clause.  This saves
 from having to add complicated SQL in the conditions clause.  The result
 set returns model instances that are less than 5 units away.
+
+    find(:all, :origin, :conditions => "distance < 5")
+
 NOTE: conditions can also be compound as in 
 :conditions => "distance < 100 and state ='TX'".
 
-If :origin or :lat or :lng are not provided in the finder 
-call, the find method works as normal.  Further, these keys are removed
+If :origin is not provided in the finder call, the find method 
+works as normal.  Further, the key is removed
 from the :options hash prior to invoking the superclass behavior.
 
 Other convenience methods work intuitively and are as follows:
@@ -258,7 +264,7 @@ HOW TO . . .
        ...
     end
 3. finders now have extra capabilities:
-    Store.find(:all, :lat => 32.951613, :lng => -96.958444, :conditions=>'distance<10')
+    Store.find(:all, :origin =>[32.951613,-96.958444], :conditions=>'distance<10')
 
 ## How to geocode an address
 
