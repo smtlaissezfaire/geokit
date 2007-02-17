@@ -114,6 +114,11 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
     assert_equal 5, locations.size    
   end
   
+  def test_find_within_with_token
+    locations = Location.find(:all, :within => 3.97, :origin => @loc_a)
+    assert_equal 5, locations.size    
+  end
+  
   def test_find_within_with_coordinates
     locations = Location.find_within(3.97, :origin =>[@loc_a.lat,@loc_a.lng])
     assert_equal 5, locations.size    
@@ -134,9 +139,24 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
     assert_equal 1, locations.size    
   end
   
+  def test_find_beyond_with_token
+    locations = Location.find(:all, :beyond => 3.95, :origin => @loc_a)
+    assert_equal 1, locations.size    
+  end
+  
   def test_find_beyond_with_coordinates
     locations = Location.find_beyond(3.95, :origin =>[@loc_a.lat, @loc_a.lng])
     assert_equal 1, locations.size    
+  end
+  
+  def test_find_range_with_token
+    locations = Location.find(:all, :range => 0..10, :origin => @loc_a)
+    assert_equal 6, locations.size
+  end
+  
+  def test_find_range_with_token_with_conditions
+    locations = Location.find(:all, :origin => @loc_a, :range => 0..10, :conditions => ["city = ?", 'Coppell'])
+    assert_equal 2, locations.size
   end
   
   def test_find_nearest

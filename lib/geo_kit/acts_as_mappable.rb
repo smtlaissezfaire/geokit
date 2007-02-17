@@ -69,6 +69,7 @@ module GeoKit
           formula = extract_formula_from_options(options)
           add_distance_to_select(options, origin, units, formula) if origin
           apply_find_scope(args, options)
+          apply_distance_scope(options)
           substitute_distance_in_conditions(options, origin, units, formula) if origin && options.has_key?(:conditions)
           args.push(options)
           super(*args)
@@ -76,29 +77,33 @@ module GeoKit
         
         # Finds within a distance radius.
         def find_within(distance, options={})
-          origin = extract_origin_from_options(options)
-          find(:all, :origin => origin, :conditions => "#{distance_column_name} <= #{distance}", :order => "#{distance_column_name} ASC")
+          options[:within] = distance
+          find(:all, options)
         end
         alias find_inside find_within
         
         # Finds beyond a distance radius.
         def find_beyond(distance, options={})
-          origin = extract_origin_from_options(options)
-          find(:all, :origin => origin, :conditions => "#{distance_column_name} > #{distance}", :order => "#{distance_column_name} ASC")
+          options[:beyond] = distance
+          find(:all, options)
         end
         alias find_outside find_beyond
         
+        # Finds according to a range.  Accepts inclusive or exclusive ranges.
+        def find_by_range(range, options={})
+          options[:range] = range
+          find(:all, options)
+        end
+        
         # Finds the closest to the origin.
         def find_closest(options={})
-          origin = extract_origin_from_options(options)
-          find(:first, :origin => origin, :order => "#{distance_column_name} ASC")
+          find(:nearest, options)
         end
         alias find_nearest find_closest
         
         # Finds the farthest from the origin.
         def find_farthest(options={})
-          origin = extract_origin_from_options(options)
-          find(:first, :origin => origin, :order => "#{distance_column_name} DESC")
+          find(:farthest, options)
         end
         
         # Returns the distance calculation to be used as a display column or a condition.  This
@@ -115,14 +120,37 @@ module GeoKit
 
         private
         
+        # Looks for mapping-specific tokens and makes appropriate translations so that the 
+        # original finder has its expected arguments.  Resets the the scope argument to 
+        # :first and ensures the limit is set to one.
         def apply_find_scope(args, options)
           case args.first
             when :nearest
               args[0] = :first
+              options[:limit] = 1
               options[:order] = "#{distance_column_name} ASC"
             when :farthest
               args[0] = :first
+              options[:limit] = 1
               options[:order] = "#{distance_column_name} DESC"
+          end
+        end
+        
+        # Replace :within, :beyond and :range distance tokens with the appropriate distance 
+        # where clauses.  Removes these tokens from the options hash.
+        def apply_distance_scope(options)
+          distance_condition = "#{distance_column_name} <= #{options[:within]}" if options.has_key?(:within)
+          distance_condition = "#{distance_column_name} > #{options[:beyond]}" if options.has_key?(:beyond)
+          distance_condition = "#{distance_column_name} >= #{options[:range].first} AND #{distance_column_name} <= #{options[:range].last}" if options.has_key?(:range)
+          [:within, :beyond, :range].each { |option| options.delete(option) } if distance_condition
+          if distance_condition && options.has_key?(:conditions)
+            original_conditions = options[:conditions]
+            condition = original_conditions.is_a?(String) ? original_conditions : original_conditions.first   
+            condition = "#{distance_condition} AND #{condition}"       
+            original_conditions = condition if original_conditions.is_a?(String)
+            original_conditions[0] = condition if original_conditions.is_a?(Array)            
+          elsif distance_condition
+            options[:conditions] = distance_condition
           end
         end
 
