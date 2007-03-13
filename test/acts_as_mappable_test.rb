@@ -66,6 +66,20 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
     @custom_loc_e = custom_locations(:e)    
   end
   
+  def test_override_default_units_the_hard_way
+    Location.default_units = :kms
+    locations = Location.find(:all, :origin => @loc_a, :conditions => "distance < 3.97")
+    assert_equal 5, locations.size   
+    Location.default_units = :miles
+  end
+  
+  def test_include
+    locations = Location.find(:all, :origin => @loc_a, :include => :company, :conditions => "company_id = 1")
+    assert !locations.empty?
+    assert_equal 1, locations[0].company.id
+    assert_equal 'Starbucks', locations[0].company.name
+  end
+  
   def test_distance_between_geocoded
     GeoKit::Geocoders::MultiGeocoder.expects(:geocode).with("Irving, TX").returns(@location_a)
     GeoKit::Geocoders::MultiGeocoder.expects(:geocode).with("San Francisco, CA").returns(@location_a)

@@ -16,6 +16,13 @@ class IpGeocoderTest < BaseGeocoderTest #:nodoc: all
     Longitude: -88.4588
     EOF
     
+  UNICODED=<<-EOF
+    Country: SWEDEN (SE)
+    City: Borås
+    Latitude: 57.7167
+    Longitude: 12.9167
+    EOF
+    
     def setup
       super
       @success.provider = "hostip"
@@ -32,6 +39,21 @@ class IpGeocoderTest < BaseGeocoderTest #:nodoc: all
     assert_equal "Sugar Grove", location.city
     assert_equal "IL", location.state
     assert_equal "US", location.country_code
+    assert_equal "hostip", location.provider
+    assert location.success
+  end
+  
+  def test_unicoded_lookup
+    success = MockSuccess.new
+    success.expects(:body).returns(UNICODED)
+    Net::HTTP.expects(:get_response).with('api.hostip.info', '/get_html.php?ip=12.215.42.19&position=true').returns(success)
+    location = GeoKit::Geocoders::IpGeocoder.geocode('12.215.42.19')
+    assert_not_nil location
+    assert_equal 57.7167, location.lat
+    assert_equal 12.9167, location.lng
+    assert_equal "Borås", location.city
+    assert_nil location.state
+    assert_equal "SE", location.country_code
     assert_equal "hostip", location.provider
     assert location.success
   end

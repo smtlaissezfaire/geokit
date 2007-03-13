@@ -1,3 +1,7 @@
+# These defaults are used in GeoKit::Mappable.distance_to and in acts_as_mappable
+GeoKit::DEFAULT_UNITS = :miles
+GeoKit::DEFAULT_FORMULA = :sphere
+
 # This is your yahoo application key for the Yahoo Geocoder.
 # See http://developer.yahoo.com/faq/index.html#appid
 # and http://developer.yahoo.com/maps/rest/V1/geocode.html

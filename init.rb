@@ -1,3 +1,4 @@
+require File.dirname(__FILE__) + '/lib/geo_kit/defaults'
 require File.dirname(__FILE__) + '/lib/geo_kit/acts_as_mappable'
 require File.dirname(__FILE__) + '/lib/geo_kit/ip_geocode_lookup'
 require File.dirname(__FILE__) + '/lib/geo_kit/geocoders'
