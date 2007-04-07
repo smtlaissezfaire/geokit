@@ -64,7 +64,7 @@ module GeoKit
 
       # Template method which does the geocode lookup.
       def self.do_geocode(address)
-        raise ArgumentError 'Geocoder.ca requires a GeoLoc argument' unless address.is_a?(GeoLoc)
+        raise ArgumentError('Geocoder.ca requires a GeoLoc argument') unless address.is_a?(GeoLoc)
         url = construct_request(address)
         res = Net::HTTP.get_response(URI.parse(url))
         return GeoLoc.new if !res.is_a?(Net::HTTPSuccess)
@@ -132,9 +132,9 @@ module GeoKit
           res.street_address = doc.elements['//ThoroughfareName'].text if doc.elements['//ThoroughfareName']
           # Translate accuracy into Yahoo-style token address, street, zip, zip+4, city, state, country
           # For Google, 1=low accuracy, 8=high accuracy
-          # TODO: why won't ReXML find the AddressDetails element?
-          # accuracy = doc.elements['//AddressDetails'].attributes['Accuracy'] if doc.elements['//AddressDetails']
-          #res.precision=%w{unknown country state state city zip zip+4 street address}[accuracy]
+          address_details=doc.elements['//AddressDetails','urn:oasis:names:tc:ciq:xsdschema:xAL:2.0']
+          accuracy = address_details ? address_details.attributes['Accuracy'] : 0
+          res.precision=%w{unknown country state state city zip zip+4 street address}[accuracy]
           res.success=true
 
           return res
@@ -265,7 +265,7 @@ module GeoKit
           logger.info "Caught an error during Yahoo geocoding call: "+$!
           return GeoLoc.new
       end
-    end     
+    end
     
     # Provides methods to geocode with a variety of geocoding service providers, plus failover
     # among providers in the order you configure.
@@ -277,7 +277,6 @@ module GeoKit
     # - currently only provides the first result. Sometimes geocoders will return multiple results.
     # - currently discards the "accuracy" component of the geocoding calls
     class MultiGeocoder < Geocoder 
-
       private
 
       # This method will call one or more geocoders in the order specified in the 
@@ -287,8 +286,13 @@ module GeoKit
       # 98% of your geocoding calls will be successful with the first call  
       def self.do_geocode(address)
         GeoKit::Geocoders::PROVIDER_ORDER.each do |provider|
-          res = eval("#{provider.to_s.capitalize}Geocoder.geocode(\"#{address}\")")
-          return res if res.success
+          begin
+            klass=GeoKit::Geocoders.const_get "#{provider.to_s.capitalize}Geocoder"
+            res = klass.send :geocode, address
+            return res if res.success
+          rescue
+            logger.error("Something has gone very wrong during geocoding, OR you have configured an invalid class name in GeoKit::Geocoders::PROVIDERS. Address: #{address}. Provider: #{provider}")
+          end
         end
         # If we get here, we failed completely.
         GeoLoc.new
