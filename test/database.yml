@@ -3,10 +3,10 @@ mysql:
   host: localhost
   username: root
   password:
-  database: acts_as_mappable_plugin_test
+  database: geokit_plugin_test
 postgresql:
   adapter: postgresql
   host: localhost
   username: root
   password: 
-  database: acts_as_mappable_plugin_test
+  database: geokit_plugin_test

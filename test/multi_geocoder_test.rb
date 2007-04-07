@@ -33,4 +33,12 @@ class MultiGeocoderTest < BaseGeocoderTest #:nodoc: all
     GeoKit::Geocoders::UsGeocoder.expects(:geocode).with(@address).returns(@failure)
     assert_equal @failure, GeoKit::Geocoders::MultiGeocoder.geocode(@address)    
   end
+
+  def test_invalid_provider
+    temp=GeoKit::Geocoders::PROVIDER_ORDER
+    GeoKit::Geocoders.const_set :PROVIDER_ORDER,[:bogus]
+    assert_equal @failure, GeoKit::Geocoders::MultiGeocoder.geocode(@address)    
+    GeoKit::Geocoders.const_set :PROVIDER_ORDER,temp
+  end
+
 end
