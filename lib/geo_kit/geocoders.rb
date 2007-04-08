@@ -136,7 +136,7 @@ module GeoKit
           accuracy = address_details ? address_details.attributes['Accuracy'].to_i : 0
           res.precision=%w{unknown country state state city zip zip+4 street address}[accuracy]
           res.success=true
-
+          
           return res
         else 
           logger.info "Google was unable to geocode address: "+address
