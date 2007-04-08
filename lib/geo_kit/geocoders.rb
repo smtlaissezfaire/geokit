@@ -133,7 +133,7 @@ module GeoKit
           # Translate accuracy into Yahoo-style token address, street, zip, zip+4, city, state, country
           # For Google, 1=low accuracy, 8=high accuracy
           address_details=doc.elements['//AddressDetails','urn:oasis:names:tc:ciq:xsdschema:xAL:2.0']
-          accuracy = address_details ? address_details.attributes['Accuracy'] : 0
+          accuracy = address_details ? address_details.attributes['Accuracy'].to_i : 0
           res.precision=%w{unknown country state state city zip zip+4 street address}[accuracy]
           res.success=true
 
