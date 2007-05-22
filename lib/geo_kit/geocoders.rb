@@ -15,6 +15,28 @@ module GeoKit
   # Some configuration is required for these geocoders and can be located in the environment
   # configuration files.
   module Geocoders
+    @@yahoo = 'REPLACE_WITH_YOUR_YAHOO_KEY'
+    @@google = 'REPLACE_WITH_YOUR_GOOGLE_KEY'
+    @@geocoder_us = false
+    @@geocoder_ca = false
+    @@provider_order = [:google,:us]
+    
+    [:yahoo, :google, :geocoder_us, :geocoder_ca, :provider_order].each do |sym|
+      class_eval <<-EOS, __FILE__, __LINE__
+        def self.#{sym}
+          if defined?(#{sym.to_s.upcase})
+            #{sym.to_s.upcase}
+          else
+            @@#{sym}
+          end
+        end
+
+        def self.#{sym}=(obj)
+          @@#{sym} = obj
+        end
+      EOS
+    end
+    
     # Error which is thrown in the event a geocoding error occurs.
     class GeocodeError < StandardError; end
     
@@ -89,7 +111,7 @@ module GeoKit
         url += add_ampersand(url) + "city=#{CGI.escape(location.city)}" if location.city
         url += add_ampersand(url) + "prov=#{location.state}" if location.state
         url += add_ampersand(url) + "postal=#{location.zip}" if location.zip
-        url += add_ampersand(url) + "auth=#{GeoKit::Geocoders::GEOCODER_CA}" if GeoKit::Geocoders::GEOCODER_CA
+        url += add_ampersand(url) + "auth=#{GeoKit::Geocoders::geocoder_ca}" if GeoKit::Geocoders::geocoder_ca
         url += add_ampersand(url) + "geoit=xml"
         'http://geocoder.ca/?' + url
       end
@@ -108,7 +130,7 @@ module GeoKit
       # Template method which does the geocode lookup.
       def self.do_geocode(address)
         address_str = address.is_a?(GeoLoc) ? address.to_geocodeable_s : address
-        res = Net::HTTP.get_response(URI.parse("http://maps.google.com/maps/geo?q=#{CGI.escape(address_str)}&output=xml&key=#{GeoKit::Geocoders::GOOGLE}&oe=utf-8"))
+        res = Net::HTTP.get_response(URI.parse("http://maps.google.com/maps/geo?q=#{CGI.escape(address_str)}&output=xml&key=#{GeoKit::Geocoders::google}&oe=utf-8"))
         return GeoLoc.new if !res.is_a?(Net::HTTPSuccess)
         xml=res.body
         logger.debug "Google geocoding. Address: #{address}. Result: #{xml}"
@@ -200,7 +222,7 @@ module GeoKit
       # For now, the geocoder_method will only geocode full addresses -- not zips or cities in isolation
       def self.do_geocode(address)
         address_str = address.is_a?(GeoLoc) ? address.to_geocodeable_s : address
-        url = "http://"+(GeoKit::Geocoders::GEOCODER_US || '')+"geocoder.us/service/csv/geocode?address=#{CGI.escape(address_str)}"
+        url = "http://"+(GeoKit::Geocoders::geocoder_us || '')+"geocoder.us/service/csv/geocode?address=#{CGI.escape(address_str)}"
         res = Net::HTTP.get_response(URI.parse(url))
         return GeoLoc.new if !res.is_a?(Net::HTTPSuccess)
         data = res.body
@@ -232,7 +254,7 @@ module GeoKit
       # Template method which does the geocode lookup.
       def self.do_geocode(address)
         address_str = address.is_a?(GeoLoc) ? address.to_geocodeable_s : address
-        url="http://api.local.yahoo.com/MapsService/V1/geocode?appid=#{GeoKit::Geocoders::YAHOO}&location=#{CGI.escape(address_str)}"
+        url="http://api.local.yahoo.com/MapsService/V1/geocode?appid=#{GeoKit::Geocoders::yahoo}&location=#{CGI.escape(address_str)}"
         res = Net::HTTP.get_response(URI.parse(url))
         return GeoLoc.new if !res.is_a?(Net::HTTPSuccess)
         xml = res.body
@@ -285,13 +307,13 @@ module GeoKit
       # The failover approach is crucial for production-grade apps, but is rarely used.
       # 98% of your geocoding calls will be successful with the first call  
       def self.do_geocode(address)
-        GeoKit::Geocoders::PROVIDER_ORDER.each do |provider|
+        GeoKit::Geocoders::provider_order.each do |provider|
           begin
             klass=GeoKit::Geocoders.const_get "#{provider.to_s.capitalize}Geocoder"
             res = klass.send :geocode, address
             return res if res.success
           rescue
-            logger.error("Something has gone very wrong during geocoding, OR you have configured an invalid class name in GeoKit::Geocoders::PROVIDERS. Address: #{address}. Provider: #{provider}")
+            logger.error("Something has gone very wrong during geocoding, OR you have configured an invalid class name in GeoKit::Geocoders::provider_order. Address: #{address}. Provider: #{provider}")
           end
         end
         # If we get here, we failed completely.

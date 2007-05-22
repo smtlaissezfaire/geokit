@@ -26,13 +26,13 @@ module GeoKit
     module ClassMethods #:nodoc:
       # Returns the distance between two points.  The from and to parameters are
       # required to have lat and lng attributes.  Valid options are:
-      # :units - valid values are :miles or :kms (GeoKit::DEFAULT_UNITS is the default)
-      # :formula - valid values are :flat or :sphere (GeoKit::DEFAULT_FORMULA is the default)
+      # :units - valid values are :miles or :kms (GeoKit::default_units is the default)
+      # :formula - valid values are :flat or :sphere (GeoKit::default_formula is the default)
       def distance_between(from, to, options={})
         from_point = from && from.is_a?(String) ? geocode(from) : from
         to_point = to && to.is_a?(String) ? geocode(to) : to
-        units = options[:units] || GeoKit::DEFAULT_UNITS
-        formula = options[:formula] || GeoKit::DEFAULT_FORMULA
+        units = options[:units] || GeoKit::default_units
+        formula = options[:formula] || GeoKit::default_formula
         case formula
         when :sphere          
           units_sphere_multiplier(units) * 

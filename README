@@ -22,7 +22,7 @@ package.
 
 ## A NOTE ON TERMINOLOGY
 
-Throughout the code and API of this, latitude and longitude are refered to as lat 
+Throughout the code and API of this, latitude and longitude are referred to as lat 
 and lng.  We've found over the long term the abbreviation saves lots of typing time.
 
 ## DISTANCE CALCULATIONS AND QUERIES

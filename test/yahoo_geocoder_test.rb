@@ -1,6 +1,6 @@
 require File.dirname(__FILE__) + '/base_geocoder_test.rb'
 
-GeoKit::Geocoders::YAHOO = 'Yahoo'
+GeoKit::Geocoders::yahoo = 'Yahoo'
 
 class YahooGeocoderTest < BaseGeocoderTest #:nodoc: all
     YAHOO_FULL=<<-EOF.strip

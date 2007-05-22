@@ -1,6 +1,6 @@
 require File.dirname(__FILE__) + '/base_geocoder_test.rb'
 
-GeoKit::Geocoders::GEOCODER_CA = "SOMEKEYVALUE"
+GeoKit::Geocoders::geocoder_ca = "SOMEKEYVALUE"
 
 class CaGeocoderTest < BaseGeocoderTest #:nodoc: all
   

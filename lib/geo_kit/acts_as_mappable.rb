@@ -28,8 +28,8 @@ module GeoKit
     module ClassMethods # :nodoc:
       # Class method to bring distance query support into ActiveRecord models.  By default
       # uses :miles for distance units and performs calculations based upon the Haversine
-      # (sphere) formula.  These can be changed by setting GeoKit::DEFAULT_UNITS and
-      # GeoKit::DEFAULT_FORMULA.  Also, by default, uses lat, lng, and distance for respective
+      # (sphere) formula.  These can be changed by setting GeoKit::default_units and
+      # GeoKit::default_formula.  Also, by default, uses lat, lng, and distance for respective
       # column names.  All of these can be overridden using the :default_units, :default_formula,
       # :lat_column_name, :lng_column_name, and :distance_column_name hash keys.
       def acts_as_mappable(options = {})
@@ -42,8 +42,8 @@ module GeoKit
         # Handle class variables.
         cattr_accessor :distance_column_name, :default_units, :default_formula, :lat_column_name, :lng_column_name
         self.distance_column_name = options[:distance_column_name]  || 'distance'
-        self.default_units = options[:default_units] || GeoKit::DEFAULT_UNITS
-        self.default_formula = options[:default_formula] || GeoKit::DEFAULT_FORMULA
+        self.default_units = options[:default_units] || GeoKit::default_units
+        self.default_formula = options[:default_formula] || GeoKit::default_formula
         self.lat_column_name = options[:lat_column_name] || 'lat'
         self.lng_column_name = options[:lng_column_name] || 'lng'
       end

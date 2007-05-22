@@ -1,6 +1,6 @@
 require File.dirname(__FILE__) + '/base_geocoder_test.rb'
 
-GeoKit::Geocoders::GOOGLE = 'Google'
+GeoKit::Geocoders::google = 'Google'
 
 class GoogleGeocoderTest < BaseGeocoderTest #:nodoc: all
   

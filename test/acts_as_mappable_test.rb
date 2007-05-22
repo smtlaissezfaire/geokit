@@ -17,7 +17,7 @@ ActiveRecord::Base.establish_connection(config[ENV['DB'] || 'mysql'])
 # Establish test tables.
 load(File.dirname(__FILE__) + "/schema.rb")
 
-GeoKit::Geocoders::PROVIDER_ORDER=[:google,:us]
+GeoKit::Geocoders::provider_order=[:google,:us]
 
 # Uses defaults
 class Company < ActiveRecord::Base #:nodoc: all

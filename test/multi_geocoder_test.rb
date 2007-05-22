@@ -1,6 +1,6 @@
 require File.dirname(__FILE__) + '/base_geocoder_test.rb'
 
-GeoKit::Geocoders::PROVIDER_ORDER=[:google,:yahoo,:us]
+GeoKit::Geocoders::provider_order=[:google,:yahoo,:us]
 
 class MultiGeocoderTest < BaseGeocoderTest #:nodoc: all
   
@@ -35,10 +35,10 @@ class MultiGeocoderTest < BaseGeocoderTest #:nodoc: all
   end
 
   def test_invalid_provider
-    temp=GeoKit::Geocoders::PROVIDER_ORDER
-    GeoKit::Geocoders.const_set :PROVIDER_ORDER,[:bogus]
+    temp = GeoKit::Geocoders::provider_order
+    GeoKit::Geocoders.provider_order = [:bogus]
     assert_equal @failure, GeoKit::Geocoders::MultiGeocoder.geocode(@address)    
-    GeoKit::Geocoders.const_set :PROVIDER_ORDER,temp
+    GeoKit::Geocoders.provider_order = temp
   end
 
 end

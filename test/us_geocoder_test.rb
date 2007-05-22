@@ -1,6 +1,6 @@
 require File.dirname(__FILE__) + '/base_geocoder_test.rb'
 
-GeoKit::Geocoders::GEOCODER_US = nil
+GeoKit::Geocoders::geocoder_us = nil
 
 class UsGeocoderTest < BaseGeocoderTest #:nodoc: all
   
