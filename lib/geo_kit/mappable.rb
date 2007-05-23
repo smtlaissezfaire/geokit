@@ -193,9 +193,10 @@ module GeoKit
     # gives you all the important fields as key-value pairs
     def hash
       res={}
-      [:success,:lat,:lng,:country_code,:city,:state,:zip,:street_address,:provider,:full_address,:ll,:is_us,:precision].each {|s|res[s]=self.send(s.to_s)}
+      [:success,:lat,:lng,:country_code,:city,:state,:zip,:street_address,:provider,:full_address,:is_us?,:ll,:precision].each { |s| res[s] = self.send(s.to_s) }
       res
     end
+    alias to_hash hash
 
     # Sets the city after capitalizing each word within the city name.
     def city=(city)
@@ -210,8 +211,8 @@ module GeoKit
     # Returns a comma-delimited string consisting of the street address, city, state,
     # zip, and country code.  Only includes those attributes that are non-blank.
     def to_geocodeable_s
-      a=[street_address,city,state,zip,country_code].compact
-      a.delete_if {|e| !e|| e==''}
+      a=[street_address, city, state, zip, country_code].compact
+      a.delete_if { |e| !e || e == '' }
       a.join(', ')      
     end
 
