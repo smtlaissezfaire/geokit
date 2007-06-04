@@ -80,11 +80,11 @@ different combinations:
 
 Origin as a two-element array of latititude/longitude:
 
-		find(:all, :origin=>[37.792,-122.393])
+		find(:all, :origin => [37.792,-122.393])
 
 Origin as a geocodeable string:
 
-		find(:all, :origin=>'100 Spear st, San Francisco, CA')
+		find(:all, :origin => '100 Spear st, San Francisco, CA')
 
 Origin as an object which responds to lat and lng methods, 
 or latitude and longitude methods, or whatever methods you have 
@@ -97,7 +97,7 @@ formula for the distance field in the conditions clause.  This saves
 from having to add complicated SQL in the conditions clause.  The result
 set returns model instances that are less than 5 units away.
 
-    find(:all, :origin, :conditions => "distance < 5")
+    find(:all, :origin => @somewhere, :conditions => "distance < 5")
 
 NOTE: conditions can also be compound as in 
 :conditions => "distance < 100 and state ='TX'".
@@ -108,10 +108,10 @@ from the :options hash prior to invoking the superclass behavior.
 
 Other convenience methods work intuitively and are as follows:
 
-    find_within(distance, options={})
-    find_beyond(distance, options={})
-    find_closest(options={})
-    find_farthest(options={})
+    find_within(distance, :origin => @somewhere)
+    find_beyond(distance, :origin => @somewhere)
+    find_closest(:origin => @somewhere)
+    find_farthest(:origin => @somewhere)
 
 where the options respect the defaults, but can be overridden if 
 desired.  
@@ -122,6 +122,14 @@ calculations, you can use the following:
     distance_sql(origin, units=default_units, formula=default_formula)
 
 Thereafter, you are free to use it in find_by_sql as you wish.
+
+There are methods available to enable you to get the count based upon
+the find condition that you have provided.  These all work similarly to
+the finders.  So for instance:
+
+    count(:origin, :conditions => "distance < 5")
+    count_within(distance, :origin => @somewhere)
+    count_beyond(distance, :origin => @somewhere)
 
 ## IP GEOCODING
 

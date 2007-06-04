@@ -1,3 +1,5 @@
+require 'geo_kit/defaults'
+
 module GeoKit
   # Contains class and instance methods providing distance calcuation services.  This
   # module is meant to be mixed into classes containing lat and lng attributes where

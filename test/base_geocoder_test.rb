@@ -1,9 +1,9 @@
-$:.unshift(File.dirname(__FILE__) + '/../lib')
 require 'test/unit'
 require 'net/http'
 require 'rubygems'
 require 'mocha'
-require File.expand_path(File.join(File.dirname(__FILE__), '../../../../config/environment.rb'))
+require File.join(File.dirname(__FILE__), '../../../../config/environment')
+
 
 class MockSuccess < Net::HTTPSuccess #:nodoc: all
   def initialize
@@ -17,6 +17,7 @@ end
 
 # Base class for testing geocoders.
 class BaseGeocoderTest < Test::Unit::TestCase #:nodoc: all
+
   # Defines common test fixtures.
   def setup
     @address = 'San Francisco, CA'    
@@ -26,6 +27,23 @@ class BaseGeocoderTest < Test::Unit::TestCase #:nodoc: all
     @success = GeoKit::GeoLoc.new({:city=>"SAN FRANCISCO", :state=>"CA", :country_code=>"US", :lat=>37.7742, :lng=>-122.417068})
     @success.success = true    
   end  
+  
+  def test_timeout_call_web_service
+    GeoKit::Geocoders::Geocoder.class_eval do
+      def self.do_get(url)
+        sleep(2)
+      end
+    end
+    url = "http://www.anything.com"
+    GeoKit::Geocoders::timeout = 1
+    assert_nil GeoKit::Geocoders::Geocoder.call_geocoder_service(url)    
+  end
+  
+  def test_successful_call_web_service
+    url = "http://www.anything.com"
+    GeoKit::Geocoders::Geocoder.expects(:do_get).with(url).returns("SUCCESS")
+    assert_equal "SUCCESS", GeoKit::Geocoders::Geocoder.call_geocoder_service(url)
+  end
   
   def test_find_geocoder_methods
     public_methods = GeoKit::Geocoders::Geocoder.public_methods

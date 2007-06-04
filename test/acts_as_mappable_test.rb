@@ -1,21 +1,6 @@
-$:.unshift(File.dirname(__FILE__) + '/../lib')
-require 'test/unit'
-require File.expand_path(File.join(File.dirname(__FILE__), '../../../../config/environment.rb'))
-require 'breakpoint'
-require 'active_record/fixtures'
-require 'action_controller/test_process'
 require 'rubygems'
 require 'mocha'
-
-# Config database connection.
-config = YAML::load(IO.read(File.dirname(__FILE__) + '/database.yml'))
-ActiveRecord::Base.logger = Logger.new(File.dirname(__FILE__) + "/debug.log")
-ActiveRecord::Base.establish_connection(config[ENV['DB'] || 'mysql'])
-#ActiveRecord::Base.establish_connection(config[ENV['DB'] || 'postgresql'])
-
-
-# Establish test tables.
-load(File.dirname(__FILE__) + "/schema.rb")
+require File.join(File.dirname(__FILE__), 'test_helper')
 
 GeoKit::Geocoders::provider_order=[:google,:us]
 
@@ -30,6 +15,7 @@ class Location < ActiveRecord::Base #:nodoc: all
   acts_as_mappable
 end
 
+# Uses deviations from conventions.
 class CustomLocation < ActiveRecord::Base #:nodoc: all
   belongs_to :company
   acts_as_mappable :distance_column_name => 'dist', 
@@ -47,7 +33,11 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
     
   LOCATION_A_IP = "217.10.83.5"  
     
-  self.fixture_path = File.dirname(__FILE__) + '/fixtures'  
+  #self.fixture_path = File.dirname(__FILE__) + '/fixtures'  
+  #self.fixture_path = RAILS_ROOT + '/test/fixtures/'
+  #puts "Rails Path #{RAILS_ROOT}"
+  #puts "Fixture Path: #{self.fixture_path}"
+  #self.fixture_path = ' /Users/bill_eisenhauer/Projects/geokit_test/test/fixtures/'
   fixtures :companies, :locations, :custom_locations
 
   def setup
@@ -70,6 +60,8 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
     Location.default_units = :kms
     locations = Location.find(:all, :origin => @loc_a, :conditions => "distance < 3.97")
     assert_equal 5, locations.size   
+    locations = Location.count(:origin => @loc_a, :conditions => "distance < 3.97")
+    assert_equal 5, locations
     Location.default_units = :miles
   end
   
@@ -111,66 +103,99 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
   def test_find_with_distance_condition
     locations = Location.find(:all, :origin => @loc_a, :conditions => "distance < 3.97")
     assert_equal 5, locations.size
+    locations = Location.count(:origin => @loc_a, :conditions => "distance < 3.97")
+    assert_equal 5, locations
   end 
   
   def test_find_with_distance_condition_with_units_override
     locations = Location.find(:all, :origin => @loc_a, :units => :kms, :conditions => "distance < 6.387")
     assert_equal 5, locations.size
+    locations = Location.count(:origin => @loc_a, :units => :kms, :conditions => "distance < 6.387")
+    assert_equal 5, locations
   end
   
   def test_find_with_distance_condition_with_formula_override
     locations = Location.find(:all, :origin => @loc_a, :formula => :flat, :conditions => "distance < 6.387")
     assert_equal 6, locations.size
+    locations = Location.count(:origin => @loc_a, :formula => :flat, :conditions => "distance < 6.387")
+    assert_equal 6, locations
   end
   
   def test_find_within
     locations = Location.find_within(3.97, :origin => @loc_a)
-    assert_equal 5, locations.size    
+    assert_equal 5, locations.size 
+    locations = Location.count_within(3.97, :origin => @loc_a)
+    assert_equal 5, locations   
   end
   
   def test_find_within_with_token
     locations = Location.find(:all, :within => 3.97, :origin => @loc_a)
     assert_equal 5, locations.size    
+    locations = Location.count(:within => 3.97, :origin => @loc_a)
+    assert_equal 5, locations
   end
   
   def test_find_within_with_coordinates
     locations = Location.find_within(3.97, :origin =>[@loc_a.lat,@loc_a.lng])
     assert_equal 5, locations.size    
+    locations = Location.count_within(3.97, :origin =>[@loc_a.lat,@loc_a.lng])
+    assert_equal 5, locations
   end
   
   def test_find_with_compound_condition
     locations = Location.find(:all, :origin => @loc_a, :conditions => "distance < 5 and city = 'Coppell'")
     assert_equal 2, locations.size
+    locations = Location.count(:origin => @loc_a, :conditions => "distance < 5 and city = 'Coppell'")
+    assert_equal 2, locations
   end
   
   def test_find_with_secure_compound_condition
     locations = Location.find(:all, :origin => @loc_a, :conditions => ["distance < ? and city = ?", 5, 'Coppell'])
     assert_equal 2, locations.size
+    locations = Location.count(:origin => @loc_a, :conditions => ["distance < ? and city = ?", 5, 'Coppell'])
+    assert_equal 2, locations
   end
   
   def test_find_beyond
     locations = Location.find_beyond(3.95, :origin => @loc_a)
     assert_equal 1, locations.size    
+    locations = Location.count_beyond(3.95, :origin => @loc_a)
+    assert_equal 1, locations
   end
   
   def test_find_beyond_with_token
     locations = Location.find(:all, :beyond => 3.95, :origin => @loc_a)
     assert_equal 1, locations.size    
+    locations = Location.count(:beyond => 3.95, :origin => @loc_a)
+    assert_equal 1, locations
   end
   
   def test_find_beyond_with_coordinates
     locations = Location.find_beyond(3.95, :origin =>[@loc_a.lat, @loc_a.lng])
     assert_equal 1, locations.size    
+    locations = Location.count_beyond(3.95, :origin =>[@loc_a.lat, @loc_a.lng])
+    assert_equal 1, locations
   end
   
   def test_find_range_with_token
     locations = Location.find(:all, :range => 0..10, :origin => @loc_a)
     assert_equal 6, locations.size
+    locations = Location.count(:range => 0..10, :origin => @loc_a)
+    assert_equal 6, locations
   end
   
   def test_find_range_with_token_with_conditions
     locations = Location.find(:all, :origin => @loc_a, :range => 0..10, :conditions => ["city = ?", 'Coppell'])
     assert_equal 2, locations.size
+    locations = Location.count(:origin => @loc_a, :range => 0..10, :conditions => ["city = ?", 'Coppell'])
+    assert_equal 2, locations
+  end
+  
+  def test_find_range_with_token_excluding_end
+    locations = Location.find(:all, :range => 0...10, :origin => @loc_a)
+    assert_equal 6, locations.size
+    locations = Location.count(:range => 0...10, :origin => @loc_a)
+    assert_equal 6, locations
   end
   
   def test_find_nearest
@@ -207,21 +232,29 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
   def test_scoped_find_with_distance_condition
     locations = @starbucks.locations.find(:all, :origin => @loc_a, :conditions => "distance < 3.97")
     assert_equal 4, locations.size
+    locations = @starbucks.locations.count(:origin => @loc_a, :conditions => "distance < 3.97")
+    assert_equal 4, locations
   end 
   
   def test_scoped_find_within
     locations = @starbucks.locations.find_within(3.97, :origin => @loc_a)
     assert_equal 4, locations.size    
+    locations = @starbucks.locations.count_within(3.97, :origin => @loc_a)
+    assert_equal 4, locations
   end
   
   def test_scoped_find_with_compound_condition
     locations = @starbucks.locations.find(:all, :origin => @loc_a, :conditions => "distance < 5 and city = 'Coppell'")
     assert_equal 2, locations.size
+    locations = @starbucks.locations.count( :origin => @loc_a, :conditions => "distance < 5 and city = 'Coppell'")
+    assert_equal 2, locations
   end
   
   def test_scoped_find_beyond
     locations = @starbucks.locations.find_beyond(3.95, :origin => @loc_a)
-    assert_equal 1, locations.size    
+    assert_equal 1, locations.size 
+    locations = @starbucks.locations.count_beyond(3.95, :origin => @loc_a)
+    assert_equal 1, locations   
   end
   
   def test_scoped_find_nearest
@@ -244,30 +277,45 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
     GeoKit::Geocoders::IpGeocoder.expects(:geocode).with(LOCATION_A_IP).returns(@location_a)
     locations = Location.find(:all, :origin => LOCATION_A_IP, :conditions => "distance < 3.97")
     assert_equal 5, locations.size
+    GeoKit::Geocoders::IpGeocoder.expects(:geocode).with(LOCATION_A_IP).returns(@location_a)
+    locations = Location.count(:origin => LOCATION_A_IP, :conditions => "distance < 3.97")
+    assert_equal 5, locations
   end 
   
   def test_ip_geocoded_find_within
     GeoKit::Geocoders::IpGeocoder.expects(:geocode).with(LOCATION_A_IP).returns(@location_a)
     locations = Location.find_within(3.97, :origin => LOCATION_A_IP)
     assert_equal 5, locations.size    
+    GeoKit::Geocoders::IpGeocoder.expects(:geocode).with(LOCATION_A_IP).returns(@location_a)
+    locations = Location.count_within(3.97, :origin => LOCATION_A_IP)
+    assert_equal 5, locations
   end
   
   def test_ip_geocoded_find_with_compound_condition
     GeoKit::Geocoders::IpGeocoder.expects(:geocode).with(LOCATION_A_IP).returns(@location_a)
     locations = Location.find(:all, :origin => LOCATION_A_IP, :conditions => "distance < 5 and city = 'Coppell'")
     assert_equal 2, locations.size
+    GeoKit::Geocoders::IpGeocoder.expects(:geocode).with(LOCATION_A_IP).returns(@location_a)
+    locations = Location.count(:origin => LOCATION_A_IP, :conditions => "distance < 5 and city = 'Coppell'")
+    assert_equal 2, locations
   end
   
   def test_ip_geocoded_find_with_secure_compound_condition
     GeoKit::Geocoders::IpGeocoder.expects(:geocode).with(LOCATION_A_IP).returns(@location_a)
     locations = Location.find(:all, :origin => LOCATION_A_IP, :conditions => ["distance < ? and city = ?", 5, 'Coppell'])
     assert_equal 2, locations.size
+    GeoKit::Geocoders::IpGeocoder.expects(:geocode).with(LOCATION_A_IP).returns(@location_a)
+    locations = Location.count(:origin => LOCATION_A_IP, :conditions => ["distance < ? and city = ?", 5, 'Coppell'])
+    assert_equal 2, locations
   end
   
   def test_ip_geocoded_find_beyond
     GeoKit::Geocoders::IpGeocoder.expects(:geocode).with(LOCATION_A_IP).returns(@location_a)
     locations = Location.find_beyond(3.95, :origin => LOCATION_A_IP)
     assert_equal 1, locations.size    
+    GeoKit::Geocoders::IpGeocoder.expects(:geocode).with(LOCATION_A_IP).returns(@location_a)
+    locations = Location.count_beyond(3.95, :origin => LOCATION_A_IP)
+    assert_equal 1, locations
   end
   
   def test_ip_geocoded_find_nearest
@@ -296,41 +344,57 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
   def test_find_with_custom_distance_condition
     locations = CustomLocation.find(:all, :origin => @loc_a, :conditions => "dist < 3.97")
     assert_equal 5, locations.size 
+    locations = CustomLocation.count(:origin => @loc_a, :conditions => "dist < 3.97")
+    assert_equal 5, locations
   end  
   
   def test_find_with_custom_distance_condition_using_custom_origin
     locations = CustomLocation.find(:all, :origin => @custom_loc_a, :conditions => "dist < 3.97")
     assert_equal 5, locations.size 
+    locations = CustomLocation.count(:origin => @custom_loc_a, :conditions => "dist < 3.97")
+    assert_equal 5, locations
   end
   
   def test_find_within_with_custom
     locations = CustomLocation.find_within(3.97, :origin => @loc_a)
     assert_equal 5, locations.size    
+    locations = CustomLocation.count_within(3.97, :origin => @loc_a)
+    assert_equal 5, locations
   end
   
   def test_find_within_with_coordinates_with_custom
     locations = CustomLocation.find_within(3.97, :origin =>[@loc_a.lat, @loc_a.lng])
     assert_equal 5, locations.size    
+    locations = CustomLocation.count_within(3.97, :origin =>[@loc_a.lat, @loc_a.lng])
+    assert_equal 5, locations
   end
   
   def test_find_with_compound_condition_with_custom
     locations = CustomLocation.find(:all, :origin => @loc_a, :conditions => "dist < 5 and city = 'Coppell'")
     assert_equal 1, locations.size
+    locations = CustomLocation.count(:origin => @loc_a, :conditions => "dist < 5 and city = 'Coppell'")
+    assert_equal 1, locations
   end
   
   def test_find_with_secure_compound_condition_with_custom
     locations = CustomLocation.find(:all, :origin => @loc_a, :conditions => ["dist < ? and city = ?", 5, 'Coppell'])
     assert_equal 1, locations.size
+    locations = CustomLocation.count(:origin => @loc_a, :conditions => ["dist < ? and city = ?", 5, 'Coppell'])
+    assert_equal 1, locations
   end
   
   def test_find_beyond_with_custom
     locations = CustomLocation.find_beyond(3.95, :origin => @loc_a)
-    assert_equal 1, locations.size    
+    assert_equal 1, locations.size  
+    locations = CustomLocation.count_beyond(3.95, :origin => @loc_a)
+    assert_equal 1, locations  
   end
   
   def test_find_beyond_with_coordinates_with_custom
     locations = CustomLocation.find_beyond(3.95, :origin =>[@loc_a.lat, @loc_a.lng])
     assert_equal 1, locations.size    
+    locations = CustomLocation.count_beyond(3.95, :origin =>[@loc_a.lat, @loc_a.lng])
+    assert_equal 1, locations
   end
   
   def test_find_nearest_with_custom
@@ -352,5 +416,7 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
   def test_find_with_array_origin
     locations = Location.find(:all, :origin =>[@loc_a.lat,@loc_a.lng], :conditions => "distance < 3.97")
     assert_equal 5, locations.size
+    locations = Location.count(:origin =>[@loc_a.lat,@loc_a.lng], :conditions => "distance < 3.97")
+    assert_equal 5, locations
   end
 end

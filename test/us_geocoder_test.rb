@@ -1,4 +1,4 @@
-require File.dirname(__FILE__) + '/base_geocoder_test.rb'
+require File.join(File.dirname(__FILE__), 'base_geocoder_test')
 
 GeoKit::Geocoders::geocoder_us = nil
 
@@ -15,20 +15,23 @@ class UsGeocoderTest < BaseGeocoderTest #:nodoc: all
   def test_geocoder_us
     response = MockSuccess.new
     response.expects(:body).returns(GEOCODER_US_FULL)
-    Net::HTTP.expects(:get_response).with(URI.parse("http://geocoder.us/service/csv/geocode?address=#{CGI.escape(@address)}")).returns(response)    
+    url = "http://geocoder.us/service/csv/geocode?address=#{CGI.escape(@address)}"
+    GeoKit::Geocoders::UsGeocoder.expects(:call_geocoder_service).with(url).returns(response)
     verify(GeoKit::Geocoders::UsGeocoder.geocode(@address))
   end
   
   def test_geocoder_with_geo_loc
     response = MockSuccess.new
     response.expects(:body).returns(GEOCODER_US_FULL)
-    Net::HTTP.expects(:get_response).with(URI.parse("http://geocoder.us/service/csv/geocode?address=#{CGI.escape(@address)}")).returns(response)    
+    url = "http://geocoder.us/service/csv/geocode?address=#{CGI.escape(@address)}"
+    GeoKit::Geocoders::UsGeocoder.expects(:call_geocoder_service).with(url).returns(response)
     verify(GeoKit::Geocoders::UsGeocoder.geocode(@us_full_loc))    
   end
   
   def test_service_unavailable
     response = MockFailure.new
-    Net::HTTP.expects(:get_response).with(URI.parse("http://geocoder.us/service/csv/geocode?address=#{CGI.escape(@address)}")).returns(response)    
+    url = "http://geocoder.us/service/csv/geocode?address=#{CGI.escape(@address)}"
+    GeoKit::Geocoders::UsGeocoder.expects(:call_geocoder_service).with(url).returns(response)
     assert !GeoKit::Geocoders::UsGeocoder.geocode(@us_full_loc).success   
   end  
   

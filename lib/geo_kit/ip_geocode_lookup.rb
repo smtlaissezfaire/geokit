@@ -37,12 +37,10 @@ module GeoKit
       return location.success ? location : nil
     end
     
-    # Either returns the real ip address or a fake one in the case where
-    # doing live testing via localhost.
+    # Returns the real ip address, though this could be the localhost ip
+    # address.  No special handling here anymore.
     def get_ip_address
-      
-      address = request.remote_ip
-      address == '127.0.0.1' ? '12.215.42.19' : address
+      request.remote_ip
     end
   end
 end

@@ -1,5 +1,6 @@
+$LOAD_PATH.unshift File.join('..', 'lib')
+require 'geo_kit/mappable'
 require 'test/unit'
-require File.expand_path(File.join(File.dirname(__FILE__), '../../../../config/environment.rb'))
 
 class LatLngTest < Test::Unit::TestCase #:nodoc: all
   
@@ -66,5 +67,4 @@ class LatLngTest < Test::Unit::TestCase #:nodoc: all
     assert_in_delta 3.97, @point.distance_to(@loc_e, :units => :miles, :formula => :flat), 0.2
     assert_in_delta 6.39, @point.distance_to(@loc_e, :units => :kms, :formula => :flat), 0.4
   end
-  
 end

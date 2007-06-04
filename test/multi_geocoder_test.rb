@@ -1,4 +1,4 @@
-require File.dirname(__FILE__) + '/base_geocoder_test.rb'
+require File.join(File.dirname(__FILE__), 'base_geocoder_test')
 
 GeoKit::Geocoders::provider_order=[:google,:yahoo,:us]
 

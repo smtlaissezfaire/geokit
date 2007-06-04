@@ -1,6 +1,7 @@
 require 'net/http'
 require 'rexml/document'
 require 'yaml'
+require 'timeout'
 
 module GeoKit
   # Contains a set of geocoders which can be used independently if desired.  The list contains:
@@ -15,13 +16,19 @@ module GeoKit
   # Some configuration is required for these geocoders and can be located in the environment
   # configuration files.
   module Geocoders
+    @@proxy_addr = nil
+    @@proxy_port = nil
+    @@proxy_user = nil
+    @@proxy_pass = nil
+    @@timeout = nil    
     @@yahoo = 'REPLACE_WITH_YOUR_YAHOO_KEY'
     @@google = 'REPLACE_WITH_YOUR_GOOGLE_KEY'
     @@geocoder_us = false
     @@geocoder_ca = false
     @@provider_order = [:google,:us]
     
-    [:yahoo, :google, :geocoder_us, :geocoder_ca, :provider_order].each do |sym|
+    [:yahoo, :google, :geocoder_us, :geocoder_ca, :provider_order, :timeout, 
+     :proxy_addr, :proxy_port, :proxy_user, :proxy_pass].each do |sym|
       class_eval <<-EOS, __FILE__, __LINE__
         def self.#{sym}
           if defined?(#{sym.to_s.upcase})
@@ -50,12 +57,26 @@ module GeoKit
         res = do_geocode(address)
         return res.success ? res : GeoLoc.new
       end  
+      
+      # Call the geocoder service using the timeout if configured.
+      def self.call_geocoder_service(url)
+        timeout(GeoKit::Geocoders::timeout) { return self.do_get(url) } if GeoKit::Geocoders::timeout        
+        return self.do_get(url)
+      rescue TimeoutError
+        return nil  
+      end
 
       protected
 
       def self.logger() RAILS_DEFAULT_LOGGER; end
       
       private
+      
+      # Wraps the geocoder call around a proxy if necessary.
+      def self.do_get(url)     
+        return Net::HTTP::Proxy(GeoKit::Geocoders::proxy_addr, GeoKit::Geocoders::proxy_port,
+            GeoKit::Geocoders::proxy_user, GeoKit::Geocoders::proxy_pass).get_response(URI.parse(url))          
+      end
       
       # Adds subclass' geocode method making it conveniently available through 
       # the base class.
@@ -88,7 +109,7 @@ module GeoKit
       def self.do_geocode(address)
         raise ArgumentError('Geocoder.ca requires a GeoLoc argument') unless address.is_a?(GeoLoc)
         url = construct_request(address)
-        res = Net::HTTP.get_response(URI.parse(url))
+        res = self.call_geocoder_service(url)
         return GeoLoc.new if !res.is_a?(Net::HTTPSuccess)
         xml = res.body
         logger.debug "Geocoder.ca geocoding. Address: #{address}. Result: #{xml}"
@@ -130,7 +151,8 @@ module GeoKit
       # Template method which does the geocode lookup.
       def self.do_geocode(address)
         address_str = address.is_a?(GeoLoc) ? address.to_geocodeable_s : address
-        res = Net::HTTP.get_response(URI.parse("http://maps.google.com/maps/geo?q=#{CGI.escape(address_str)}&output=xml&key=#{GeoKit::Geocoders::google}&oe=utf-8"))
+        res = self.call_geocoder_service("http://maps.google.com/maps/geo?q=#{CGI.escape(address_str)}&output=xml&key=#{GeoKit::Geocoders::google}&oe=utf-8")
+#        res = Net::HTTP.get_response(URI.parse("http://maps.google.com/maps/geo?q=#{CGI.escape(address_str)}&output=xml&key=#{GeoKit::Geocoders::google}&oe=utf-8"))
         return GeoLoc.new if !res.is_a?(Net::HTTPSuccess)
         xml=res.body
         logger.debug "Google geocoding. Address: #{address}. Result: #{xml}"
@@ -183,7 +205,8 @@ module GeoKit
       # parameter does not match an ip address.  
       def self.do_geocode(ip)
         return GeoLoc.new unless /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})?$/.match(ip)
-        response = Net::HTTP.get_response('api.hostip.info', "/get_html.php?ip=#{ip}&position=true")
+        url = "http://api.hostip.info/get_html.php?ip=#{ip}&position=true"
+        response = self.call_geocoder_service(url)
         response.is_a?(Net::HTTPSuccess) ? parse_body(response.body) : GeoLoc.new
       rescue
         logger.error "Caught an error during HostIp geocoding call: "+$!
@@ -223,7 +246,7 @@ module GeoKit
       def self.do_geocode(address)
         address_str = address.is_a?(GeoLoc) ? address.to_geocodeable_s : address
         url = "http://"+(GeoKit::Geocoders::geocoder_us || '')+"geocoder.us/service/csv/geocode?address=#{CGI.escape(address_str)}"
-        res = Net::HTTP.get_response(URI.parse(url))
+        res = self.call_geocoder_service(url)
         return GeoLoc.new if !res.is_a?(Net::HTTPSuccess)
         data = res.body
         logger.debug "Geocoder.us geocoding. Address: #{address}. Result: #{data}"
@@ -255,7 +278,7 @@ module GeoKit
       def self.do_geocode(address)
         address_str = address.is_a?(GeoLoc) ? address.to_geocodeable_s : address
         url="http://api.local.yahoo.com/MapsService/V1/geocode?appid=#{GeoKit::Geocoders::yahoo}&location=#{CGI.escape(address_str)}"
-        res = Net::HTTP.get_response(URI.parse(url))
+        res = self.call_geocoder_service(url)
         return GeoLoc.new if !res.is_a?(Net::HTTPSuccess)
         xml = res.body
         doc = REXML::Document.new(xml)
@@ -309,7 +332,7 @@ module GeoKit
       def self.do_geocode(address)
         GeoKit::Geocoders::provider_order.each do |provider|
           begin
-            klass=GeoKit::Geocoders.const_get "#{provider.to_s.capitalize}Geocoder"
+            klass = GeoKit::Geocoders.const_get "#{provider.to_s.capitalize}Geocoder"
             res = klass.send :geocode, address
             return res if res.success
           rescue

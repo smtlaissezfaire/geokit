@@ -1,22 +1,22 @@
-require File.dirname(__FILE__) + '/base_geocoder_test.rb'
+require File.join(File.dirname(__FILE__), 'base_geocoder_test')
 
 class IpGeocoderTest < BaseGeocoderTest #:nodoc: all
     
-  FAILURE=<<-EOF
+  IP_FAILURE=<<-EOF
     Country: (Private Address) (XX)
     City: (Private Address)
     Latitude: 
     Longitude:
     EOF
     
-  SUCCESS=<<-EOF
+  IP_SUCCESS=<<-EOF
     Country: UNITED STATES (US)
     City: Sugar Grove, IL
     Latitude: 41.7696
     Longitude: -88.4588
     EOF
     
-  UNICODED=<<-EOF
+  IP_UNICODED=<<-EOF
     Country: SWEDEN (SE)
     City: Borås
     Latitude: 57.7167
@@ -30,8 +30,9 @@ class IpGeocoderTest < BaseGeocoderTest #:nodoc: all
   
   def test_successful_lookup
     success = MockSuccess.new
-    success.expects(:body).returns(SUCCESS)
-    Net::HTTP.expects(:get_response).with('api.hostip.info', '/get_html.php?ip=12.215.42.19&position=true').returns(success)
+    success.expects(:body).returns(IP_SUCCESS)
+    url = 'http://api.hostip.info/get_html.php?ip=12.215.42.19&position=true'
+    GeoKit::Geocoders::IpGeocoder.expects(:call_geocoder_service).with(url).returns(success)
     location = GeoKit::Geocoders::IpGeocoder.geocode('12.215.42.19')
     assert_not_nil location
     assert_equal 41.7696, location.lat
@@ -45,8 +46,9 @@ class IpGeocoderTest < BaseGeocoderTest #:nodoc: all
   
   def test_unicoded_lookup
     success = MockSuccess.new
-    success.expects(:body).returns(UNICODED)
-    Net::HTTP.expects(:get_response).with('api.hostip.info', '/get_html.php?ip=12.215.42.19&position=true').returns(success)
+    success.expects(:body).returns(IP_UNICODED)
+    url = 'http://api.hostip.info/get_html.php?ip=12.215.42.19&position=true'
+    GeoKit::Geocoders::IpGeocoder.expects(:call_geocoder_service).with(url).returns(success)
     location = GeoKit::Geocoders::IpGeocoder.geocode('12.215.42.19')
     assert_not_nil location
     assert_equal 57.7167, location.lat
@@ -60,8 +62,9 @@ class IpGeocoderTest < BaseGeocoderTest #:nodoc: all
   
   def test_failed_lookup
     failure = MockSuccess.new
-    failure.expects(:body).returns(FAILURE)
-    Net::HTTP.expects(:get_response).with('api.hostip.info', '/get_html.php?ip=0.0.0.0&position=true').returns(failure)
+    failure.expects(:body).returns(IP_FAILURE)
+    url = 'http://api.hostip.info/get_html.php?ip=0.0.0.0&position=true'
+    GeoKit::Geocoders::IpGeocoder.expects(:call_geocoder_service).with(url).returns(failure)
     location = GeoKit::Geocoders::IpGeocoder.geocode("0.0.0.0")
     assert_not_nil location
     assert !location.success
@@ -75,7 +78,8 @@ class IpGeocoderTest < BaseGeocoderTest #:nodoc: all
   
   def test_service_unavailable
     failure = MockFailure.new
-    Net::HTTP.expects(:get_response).with('api.hostip.info', '/get_html.php?ip=0.0.0.0&position=true').returns(failure)
+    url = 'http://api.hostip.info/get_html.php?ip=0.0.0.0&position=true'
+    GeoKit::Geocoders::IpGeocoder.expects(:call_geocoder_service).with(url).returns(failure)
     location = GeoKit::Geocoders::IpGeocoder.geocode("0.0.0.0")
     assert_not_nil location
     assert !location.success

@@ -1,3 +1,4 @@
+# Display to the console the contents of the README file.
 puts IO.read(File.join(File.dirname(__FILE__), 'README'))
 
 # Append the contents of api_keys_template to the application's environment.rb file

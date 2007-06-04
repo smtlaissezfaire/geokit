@@ -16,6 +16,8 @@ module GeoKit
   # * find_closest (alias: find_nearest)
   # * find_farthest
   #
+  # Counter methods are available and work similarly to finders.  
+  #
   # If raw SQL is desired, the distance_sql method can be used to obtain SQL appropriate
   # to use in a find_by_sql call.
   module ActsAsMappable 
@@ -64,17 +66,18 @@ module GeoKit
         #   conditions, substitutes the distance sql for the distance column -- this saves
         #   having to write the gory SQL.
         def find(*args)
-          options = extract_options_from_args!(args)
-          origin = extract_origin_from_options(options)
-          units = extract_units_from_options(options)
-          formula = extract_formula_from_options(options)
-          add_distance_to_select(options, origin, units, formula) if origin
-          apply_find_scope(args, options)
-          apply_distance_scope(options)
-          substitute_distance_in_conditions(options, origin, units, formula) if origin && options.has_key?(:conditions)
-          args.push(options)
+          prepare_for_find_or_count(:find, args)
           super(*args)
         end     
+        
+        # Extends the existing count method by:
+        # - If a mappable instance exists in the options and the distance column exists in the
+        #   conditions, substitutes the distance sql for the distance column -- this saves
+        #   having to write the gory SQL.
+        def count(*args)
+          prepare_for_find_or_count(:count, args)
+          super(*args)
+        end
         
         # Finds within a distance radius.
         def find_within(distance, options={})
@@ -107,6 +110,26 @@ module GeoKit
           find(:farthest, options)
         end
         
+        # counts within a distance radius.
+        def count_within(distance, options={})
+          options[:within] = distance
+          count(options)
+        end
+        alias count_inside count_within
+        
+        # Counts beyond a distance radius.
+        def count_beyond(distance, options={})
+          options[:beyond] = distance
+          count(options)
+        end
+        alias count_outside count_beyond
+        
+        # Counts according to a range.  Accepts inclusive or exclusive ranges.
+        def count_by_range(range, options={})
+          options[:range] = range
+          count(options)
+        end
+        
         # Returns the distance calculation to be used as a display column or a condition.  This
         # is provide for anyone wanting access to the raw SQL.
         def distance_sql(origin, units=default_units, formula=default_formula)
@@ -120,6 +143,26 @@ module GeoKit
         end   
 
         private
+        
+        # Prepares either a find or a count action by parsing through the options and
+        # conditionally adding to the select clause for finders.
+        def prepare_for_find_or_count(action, args)
+          options = extract_options_from_args!(args)
+          # Obtain items affecting distance condition.
+          origin = extract_origin_from_options(options)
+          units = extract_units_from_options(options)
+          formula = extract_formula_from_options(options)
+          # Apply select adjustments based upon action.
+          add_distance_to_select(options, origin, units, formula) if origin && action == :find
+          # Apply distance scoping and perform substitutions.
+          apply_distance_scope(options)
+          substitute_distance_in_conditions(options, origin, units, formula) if origin && options.has_key?(:conditions)
+          # Order by scoping for find action.
+          apply_find_scope(args, options) if action == :find
+          # Restore options minus the extra options that we used for the
+          # GeoKit API.
+          args.push(options)   
+        end
         
         # Looks for mapping-specific tokens and makes appropriate translations so that the 
         # original finder has its expected arguments.  Resets the the scope argument to 
@@ -142,7 +185,7 @@ module GeoKit
         def apply_distance_scope(options)
           distance_condition = "#{distance_column_name} <= #{options[:within]}" if options.has_key?(:within)
           distance_condition = "#{distance_column_name} > #{options[:beyond]}" if options.has_key?(:beyond)
-          distance_condition = "#{distance_column_name} >= #{options[:range].first} AND #{distance_column_name} <= #{options[:range].last}" if options.has_key?(:range)
+          distance_condition = "#{distance_column_name} >= #{options[:range].first} AND #{distance_column_name} <#{'=' unless options[:range].exclude_end?} #{options[:range].last}" if options.has_key?(:range)
           [:within, :beyond, :range].each { |option| options.delete(option) } if distance_condition
           if distance_condition && options.has_key?(:conditions)
             original_conditions = options[:conditions]

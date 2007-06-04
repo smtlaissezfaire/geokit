@@ -1,4 +1,4 @@
-require File.dirname(__FILE__) + '/base_geocoder_test.rb'
+require File.join(File.dirname(__FILE__), 'base_geocoder_test')
 
 GeoKit::Geocoders::google = 'Google'
 
@@ -24,7 +24,8 @@ class GoogleGeocoderTest < BaseGeocoderTest #:nodoc: all
   def test_google_full_address
     response = MockSuccess.new
     response.expects(:body).returns(GOOGLE_FULL)
-    Net::HTTP.expects(:get_response).with(URI.parse("http://maps.google.com/maps/geo?q=#{CGI.escape(@address)}&output=xml&key=Google&oe=utf-8")).returns(response)
+    url = "http://maps.google.com/maps/geo?q=#{CGI.escape(@address)}&output=xml&key=Google&oe=utf-8"
+    GeoKit::Geocoders::GoogleGeocoder.expects(:call_geocoder_service).with(url).returns(response)
     res=GeoKit::Geocoders::GoogleGeocoder.geocode(@address)
     assert_equal "CA", res.state
     assert_equal "San Francisco", res.city 
@@ -37,7 +38,8 @@ class GoogleGeocoderTest < BaseGeocoderTest #:nodoc: all
   def test_google_full_address_with_geo_loc
     response = MockSuccess.new
     response.expects(:body).returns(GOOGLE_FULL)
-    Net::HTTP.expects(:get_response).with(URI.parse("http://maps.google.com/maps/geo?q=#{CGI.escape(@full_address_short_zip)}&output=xml&key=Google&oe=utf-8")).returns(response)
+    url = "http://maps.google.com/maps/geo?q=#{CGI.escape(@full_address_short_zip)}&output=xml&key=Google&oe=utf-8"
+    GeoKit::Geocoders::GoogleGeocoder.expects(:call_geocoder_service).with(url).returns(response)
     res=GeoKit::Geocoders::GoogleGeocoder.geocode(@google_full_loc)
     assert_equal "CA", res.state
     assert_equal "San Francisco", res.city 
@@ -50,7 +52,8 @@ class GoogleGeocoderTest < BaseGeocoderTest #:nodoc: all
   def test_google_city
     response = MockSuccess.new
     response.expects(:body).returns(GOOGLE_CITY)
-    Net::HTTP.expects(:get_response).with(URI.parse("http://maps.google.com/maps/geo?q=#{CGI.escape(@address)}&output=xml&key=Google&oe=utf-8")).returns(response)    
+    url = "http://maps.google.com/maps/geo?q=#{CGI.escape(@address)}&output=xml&key=Google&oe=utf-8"
+    GeoKit::Geocoders::GoogleGeocoder.expects(:call_geocoder_service).with(url).returns(response)
     res=GeoKit::Geocoders::GoogleGeocoder.geocode(@address)
     assert_equal "CA", res.state
     assert_equal "San Francisco", res.city
@@ -64,7 +67,8 @@ class GoogleGeocoderTest < BaseGeocoderTest #:nodoc: all
   def test_google_city_with_geo_loc
     response = MockSuccess.new
     response.expects(:body).returns(GOOGLE_CITY)
-    Net::HTTP.expects(:get_response).with(URI.parse("http://maps.google.com/maps/geo?q=#{CGI.escape(@address)}&output=xml&key=Google&oe=utf-8")).returns(response)    
+    url = "http://maps.google.com/maps/geo?q=#{CGI.escape(@address)}&output=xml&key=Google&oe=utf-8"
+    GeoKit::Geocoders::GoogleGeocoder.expects(:call_geocoder_service).with(url).returns(response)
     res=GeoKit::Geocoders::GoogleGeocoder.geocode(@google_city_loc)
     assert_equal "CA", res.state
     assert_equal "San Francisco", res.city
@@ -77,7 +81,8 @@ class GoogleGeocoderTest < BaseGeocoderTest #:nodoc: all
   
   def test_service_unavailable
     response = MockFailure.new
-    Net::HTTP.expects(:get_response).with(URI.parse("http://maps.google.com/maps/geo?q=#{CGI.escape(@address)}&output=xml&key=Google&oe=utf-8")).returns(response)    
+    url = "http://maps.google.com/maps/geo?q=#{CGI.escape(@address)}&output=xml&key=Google&oe=utf-8"
+    GeoKit::Geocoders::GoogleGeocoder.expects(:call_geocoder_service).with(url).returns(response)
     assert !GeoKit::Geocoders::GoogleGeocoder.geocode(@google_city_loc).success
   end 
 end
