@@ -85,7 +85,7 @@ module GeoKit
           find(:all, options)
         end
         alias find_inside find_within
-        
+                
         # Finds beyond a distance radius.
         def find_beyond(distance, options={})
           options[:beyond] = distance
@@ -109,6 +109,12 @@ module GeoKit
         def find_farthest(options={})
           find(:farthest, options)
         end
+
+        # Finds within rectangular bounds (sw,ne).
+        def find_within_bounds(bounds, options={})
+          options[:bounds] = bounds
+          find(:all, options)
+        end
         
         # counts within a distance radius.
         def count_within(distance, options={})
@@ -116,7 +122,7 @@ module GeoKit
           count(options)
         end
         alias count_inside count_within
-        
+
         # Counts beyond a distance radius.
         def count_beyond(distance, options={})
           options[:beyond] = distance
@@ -129,7 +135,13 @@ module GeoKit
           options[:range] = range
           count(options)
         end
-        
+
+        # Finds within rectangular bounds (sw,ne).
+        def count_within_bounds(bounds, options={})
+          options[:bounds] = bounds
+          count(options)
+        end
+                
         # Returns the distance calculation to be used as a display column or a condition.  This
         # is provide for anyone wanting access to the raw SQL.
         def distance_sql(origin, units=default_units, formula=default_formula)
@@ -152,8 +164,11 @@ module GeoKit
           origin = extract_origin_from_options(options)
           units = extract_units_from_options(options)
           formula = extract_formula_from_options(options)
+          bounds = extract_bounds_from_options(options)
           # Apply select adjustments based upon action.
           add_distance_to_select(options, origin, units, formula) if origin && action == :find
+          # Apply the conditions for a bounding rectangle if applicable
+          apply_bounds_conditions(options,bounds) if bounds
           # Apply distance scoping and perform substitutions.
           apply_distance_scope(options)
           substitute_distance_in_conditions(options, origin, units, formula) if origin && options.has_key?(:conditions)
@@ -187,15 +202,35 @@ module GeoKit
           distance_condition = "#{distance_column_name} > #{options[:beyond]}" if options.has_key?(:beyond)
           distance_condition = "#{distance_column_name} >= #{options[:range].first} AND #{distance_column_name} <#{'=' unless options[:range].exclude_end?} #{options[:range].last}" if options.has_key?(:range)
           [:within, :beyond, :range].each { |option| options.delete(option) } if distance_condition
-          if distance_condition && options.has_key?(:conditions)
-            original_conditions = options[:conditions]
-            condition = original_conditions.is_a?(String) ? original_conditions : original_conditions.first   
-            condition = "#{distance_condition} AND #{condition}"       
-            original_conditions = condition if original_conditions.is_a?(String)
-            original_conditions[0] = condition if original_conditions.is_a?(Array)            
-          elsif distance_condition
-            options[:conditions] = distance_condition
+          
+          options[:conditions]=augment_conditions(options[:conditions],distance_condition) if distance_condition
+        end
+
+        # This method lets you transparently add a new condition to a query without
+        # worrying about whether it currently has conditions, or what kind of conditions they are
+        # (string or array).
+        # 
+        # Takes the current conditions (which can be an array or a string, or can be nil/false), 
+        # and a SQL string. It inserts the sql into the existing conditions, and returns new conditions
+        # (which can be a string or an array
+        def augment_conditions(current_conditions,sql)
+          if current_conditions && current_conditions.is_a?(String)
+            res="#{current_conditions} AND #{sql}"  
+          elsif current_conditions && current_conditions.is_a?(Array)
+            current_conditions[0]="#{current_conditions[0]} AND #{sql}"
+            res=current_conditions
+          else
+            res=sql
           end
+          res
+        end
+
+        # Alters the conditions to include rectangular bounds conditions.
+        # NOTE: does not account for international date line yet.
+        def apply_bounds_conditions(options,bounds)
+          sw,ne=bounds
+          bounds_sql="#{lat_column_name}>#{sw.lat} AND #{lat_column_name}<#{ne.lat} AND #{lng_column_name}>#{sw.lng} AND #{lng_column_name}<#{ne.lng}"
+          options[:conditions]=augment_conditions(options[:conditions],bounds_sql)          
         end
 
         # Extracts the origin instance out of the options if it exists and returns
@@ -203,13 +238,8 @@ module GeoKit
         # create an origin.  The side-effect of the method is to remove these 
         # option keys from the hash.
         def extract_origin_from_options(options)
-          origin = options[:origin]
-          if origin
-              res = geocode_origin(origin) if origin.is_a?(String)
-              res = GeoKit::LatLng.new(options[:origin][0], options[:origin][1]) if origin.is_a?(Array)
-              res = GeoKit::LatLng.new(extract_latitude(origin), extract_longitude(origin)) unless res
-          end
-          options.delete(:origin)
+          origin = options.delete(:origin)
+          res = normalize_point_to_lat_lng(origin) if origin
           res
         end
         
@@ -229,6 +259,10 @@ module GeoKit
           formula = options[:formula] || default_formula
           options.delete(:formula)
           formula
+        end
+        
+        def extract_bounds_from_options(options)
+          bounds = options.delete(:bounds)          
         end
         
         # Geocodes the origin which was passed in String form.  The string needs
@@ -323,22 +357,32 @@ module GeoKit
           end
         end
         
-        # Extract the latitude from the origin by trying the lat or latitude methods first
+        # Extract the latitude from the point by trying the lat or latitude methods first
         # and then making the assumption this is an instance of the kind of classes we are
         # trying to find.
-        def extract_latitude(origin)
-          return origin.lat if origin.methods.include?('lat')
-          return origin.latitude if origin.methods.include?('latitude')
-          return eval("origin.#{lat_column_name}") if origin.instance_of?(self)
+        def extract_latitude(point)
+          return point.lat if point.respond_to?(:lat)
+          return point.latitude if point.respond_to?(:latitude)
+          return point.send(lat_column_name) if point.instance_of?(self)
         end
         
         # Extract the longitude from the origin by trying the lng or longitude methods first
         # and then making the assumption this is an instance of the kind of classes we are
         # trying to find.
-        def extract_longitude(origin)
-          return origin.lng if origin.methods.include?('lng')
-          return origin.longitude if origin.methods.include?('longitude')    
-          return eval("origin.#{lng_column_name}") if origin.instance_of?(self)      
+        def extract_longitude(point)
+          return point.lng if point.respond_to?(:lng)
+          return point.longitude if point.respond_to?(:longitude)
+          return point.send(lng_column_name) if point.instance_of?(self)
+        end
+        
+        # Given a point in any of three formats (an address to geocode,
+        # an array of [lat,lng], or an object with appropriate lat/lng methods)
+        # this method will normalize it into a GeoKit::LatLng instance.
+        def normalize_point_to_lat_lng(point)
+          res = geocode_origin(point) if point.is_a?(String)
+          res = GeoKit::LatLng.new(point[0], point[1]) if point.is_a?(Array)
+          res = GeoKit::LatLng.new(extract_latitude(point), extract_longitude(point)) unless res
+          res       
         end
       end
     end

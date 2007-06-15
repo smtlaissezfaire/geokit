@@ -49,6 +49,10 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
     @location_a.country_code = "US"
     @location_a.success = true
     
+    @sw = GeoKit::LatLng.new(32.91663,-96.982841)
+    @ne = GeoKit::LatLng.new(32.96302,-96.919495)
+    @bounds_center=GeoKit::LatLng.new((@sw.lat+@ne.lat)/2,(@sw.lng+@ne.lng)/2)
+    
     @starbucks = companies(:starbucks)
     @loc_a = locations(:a)
     @custom_loc_a = custom_locations(:a)
@@ -419,4 +423,38 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
     locations = Location.count(:origin =>[@loc_a.lat,@loc_a.lng], :conditions => "distance < 3.97")
     assert_equal 5, locations
   end
+
+
+  # Bounding box tests
+
+  def test_find_within_bounds
+    locations = Location.find_within_bounds([@sw,@ne])
+    assert_equal 2, locations.size
+    locations = Location.count_within_bounds([@sw,@ne])
+    assert_equal 2, locations
+  end
+
+  def test_find_within_bounds_ordered_by_distance
+    locations = Location.find_within_bounds([@sw,@ne], :origin=>@bounds_center, :order=>'distance asc')
+    assert_equal locations[0], locations(:d)
+    assert_equal locations[1], locations(:a)
+  end
+  
+  def test_find_within_bounds_with_token
+    locations = Location.find(:all, :bounds=>[@sw,@ne])
+    assert_equal 2, locations.size
+    locations = Location.count(:bounds=>[@sw,@ne])
+    assert_equal 2, locations  
+  end
+
+  def test_find_within_bounds_with_string_conditions
+    locations = Location.find(:all, :bounds=>[@sw,@ne], :conditions=>"id !=#{locations(:a).id}")
+    assert_equal 1, locations.size
+  end
+
+  def test_find_within_bounds_with_array_conditions
+    locations = Location.find(:all, :bounds=>[@sw,@ne], :conditions=>["id != ?", locations(:a).id])
+    assert_equal 1, locations.size
+  end
+
 end
