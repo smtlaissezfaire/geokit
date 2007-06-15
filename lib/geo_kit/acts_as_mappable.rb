@@ -262,7 +262,8 @@ module GeoKit
         end
         
         def extract_bounds_from_options(options)
-          bounds = options.delete(:bounds)          
+          bounds = options.delete(:bounds)
+          bounds.map{|point|normalize_point_to_lat_lng(point)} if bounds
         end
         
         # Geocodes the origin which was passed in String form.  The string needs
