@@ -22,4 +22,10 @@ ActiveRecord::Schema.define(:version => 0) do
     t.column :latitude,    :decimal, :precision => 15, :scale => 10
     t.column :longitude,   :decimal, :precision => 15, :scale => 10
   end
+  
+  create_table :stores, :force=> true do |t|
+    t.column :address,     :string
+    t.column :lat,         :decimal, :precision => 15, :scale => 10
+    t.column :lng,         :decimal, :precision => 15, :scale => 10
+  end
 end

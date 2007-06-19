@@ -15,6 +15,11 @@ class Location < ActiveRecord::Base #:nodoc: all
   acts_as_mappable
 end
 
+# for auto_geocode
+class Store < ActiveRecord::Base
+  acts_as_mappable :auto_geocode=>true
+end
+
 # Uses deviations from conventions.
 class CustomLocation < ActiveRecord::Base #:nodoc: all
   belongs_to :company
@@ -38,7 +43,7 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
   #puts "Rails Path #{RAILS_ROOT}"
   #puts "Fixture Path: #{self.fixture_path}"
   #self.fixture_path = ' /Users/bill_eisenhauer/Projects/geokit_test/test/fixtures/'
-  fixtures :companies, :locations, :custom_locations
+  fixtures :companies, :locations, :custom_locations, :stores
 
   def setup
     @location_a = GeoKit::GeoLoc.new
@@ -457,4 +462,20 @@ class ActsAsMappableTest < Test::Unit::TestCase #:nodoc: all
     assert_equal 1, locations.size
   end
 
+  def test_auto_geocode
+    GeoKit::Geocoders::MultiGeocoder.expects(:geocode).with("Irving, TX").returns(@location_a)
+    store=Store.new(:address=>'Irving, TX')
+    store.save
+    assert_equal store.lat,@location_a.lat  
+    assert_equal store.lng,@location_a.lng
+    assert_equal 0, store.errors.size
+  end
+
+  def test_auto_geocode_failure
+    GeoKit::Geocoders::MultiGeocoder.expects(:geocode).with("BOGUS").returns(GeoKit::GeoLoc.new)
+    store=Store.new(:address=>'BOGUS')
+    store.save
+    assert store.new_record?
+    assert_equal 1, store.errors.size
+  end
 end

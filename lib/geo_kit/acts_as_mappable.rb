@@ -8,7 +8,7 @@ module GeoKit
   #   2. a geocodeable string -- :origin=>'100 Spear st, San Francisco, CA'
   #   3. an object which responds to lat and lng methods, or latitude and longitude methods,
   #      or whatever methods you have specified for lng_column_name and lat_column_name
-  #      
+  #
   # Other finder methods are provided for specific queries.  These are:
   #
   # * find_within (alias: find_inside)
@@ -34,6 +34,18 @@ module GeoKit
       # GeoKit::default_formula.  Also, by default, uses lat, lng, and distance for respective
       # column names.  All of these can be overridden using the :default_units, :default_formula,
       # :lat_column_name, :lng_column_name, and :distance_column_name hash keys.
+      # 
+      # Can also use to auto-geocode a specific column on create. Syntax;
+      #   
+      #   acts_as_mappable :auto_geocode=>true
+      # 
+      # By default, it tries to geocode the "address" field. Or, for more customized behavior:
+      #   
+      #   acts_as_mappable :auto_geocode=>{:field=>:address,:error_message=>'bad address'}
+      #   
+      # In both cases, it creates a before_validation_on_create callback to geocode the given column.
+      # For anything more customized, we recommend you forgo the auto_geocode option
+      # and create your own AR callback to handle geocoding.
       def acts_as_mappable(options = {})
         # Mix in the module, but ensure to do so just once.
         return if self.included_modules.include?(GeoKit::ActsAsMappable::InstanceMethods)
@@ -48,7 +60,32 @@ module GeoKit
         self.default_formula = options[:default_formula] || GeoKit::default_formula
         self.lat_column_name = options[:lat_column_name] || 'lat'
         self.lng_column_name = options[:lng_column_name] || 'lng'
+        if options.include?(:auto_geocode) && options[:auto_geocode]
+          # if the form auto_geocode=>true is used, let the defaults take over by suppling an empty hash
+          options[:auto_geocode] = {} if options[:auto_geocode] == true 
+          cattr_accessor :auto_geocode_field, :auto_geocode_error_message
+          self.auto_geocode_field = options[:auto_geocode][:field] || 'address'
+          self.auto_geocode_error_message = options[:auto_geocode][:error_message] || 'could not locate address'
+          
+          # set the actual callback here
+          before_validation_on_create :auto_geocode_address        
+        end
       end
+    end
+    
+    # this is the callback for auto_geocoding
+    def auto_geocode_address
+      address=self.send(auto_geocode_field)
+      geo=GeoKit::Geocoders::MultiGeocoder.geocode(address)
+  
+      if geo.success
+        self.send("#{lat_column_name}=", geo.lat)
+        self.send("#{lng_column_name}=", geo.lng)
+      else
+        errors.add(auto_geocode_field, auto_geocode_error_message) 
+      end
+      
+      geo.success
     end
     
     # Instance methods to mix into ActiveRecord.
