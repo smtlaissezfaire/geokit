@@ -54,12 +54,14 @@ module GeoKit
         send :include, Mappable
         
         # Handle class variables.
-        cattr_accessor :distance_column_name, :default_units, :default_formula, :lat_column_name, :lng_column_name
+        cattr_accessor :distance_column_name, :default_units, :default_formula, :lat_column_name, :lng_column_name, :qualified_lat_column_name, :qualified_lng_column_name
         self.distance_column_name = options[:distance_column_name]  || 'distance'
         self.default_units = options[:default_units] || GeoKit::default_units
         self.default_formula = options[:default_formula] || GeoKit::default_formula
         self.lat_column_name = options[:lat_column_name] || 'lat'
         self.lng_column_name = options[:lng_column_name] || 'lng'
+        self.qualified_lat_column_name = "#{table_name}.#{lat_column_name}"
+        self.qualified_lng_column_name = "#{table_name}.#{lng_column_name}"
         if options.include?(:auto_geocode) && options[:auto_geocode]
           # if the form auto_geocode=>true is used, let the defaults take over by suppling an empty hash
           options[:auto_geocode] = {} if options[:auto_geocode] == true 
@@ -266,7 +268,7 @@ module GeoKit
         # NOTE: does not account for international date line yet.
         def apply_bounds_conditions(options,bounds)
           sw,ne=bounds
-          bounds_sql="#{lat_column_name}>#{sw.lat} AND #{lat_column_name}<#{ne.lat} AND #{lng_column_name}>#{sw.lng} AND #{lng_column_name}<#{ne.lng}"
+          bounds_sql="#{qualified_lat_column_name}>#{sw.lat} AND #{qualified_lat_column_name}<#{ne.lat} AND #{qualified_lng_column_name}>#{sw.lng} AND #{qualified_lng_column_name}<#{ne.lng}"
           options[:conditions]=augment_conditions(options[:conditions],bounds_sql)          
         end
 
@@ -359,15 +361,15 @@ module GeoKit
           case connection.adapter_name.downcase
           when "mysql"
             sql=<<-SQL_END 
-                  (ACOS(COS(#{lat})*COS(#{lng})*COS(RADIANS(#{lat_column_name}))*COS(RADIANS(#{lng_column_name}))+
-                  COS(#{lat})*SIN(#{lng})*COS(RADIANS(#{lat_column_name}))*SIN(RADIANS(#{lng_column_name}))+
-                  SIN(#{lat})*SIN(RADIANS(#{lat_column_name})))*#{multiplier})
+                  (ACOS(COS(#{lat})*COS(#{lng})*COS(RADIANS(#{qualified_lat_column_name}))*COS(RADIANS(#{qualified_lng_column_name}))+
+                  COS(#{lat})*SIN(#{lng})*COS(RADIANS(#{qualified_lat_column_name}))*SIN(RADIANS(#{qualified_lng_column_name}))+
+                  SIN(#{lat})*SIN(RADIANS(#{qualified_lat_column_name})))*#{multiplier})
                   SQL_END
           when "postgresql"
             sql=<<-SQL_END 
-                  (ACOS(COS(#{lat})*COS(#{lng})*COS(RADIANS(#{lat_column_name}))*COS(RADIANS(#{lng_column_name}))+
-                  COS(#{lat})*SIN(#{lng})*COS(RADIANS(#{lat_column_name}))*SIN(RADIANS(#{lng_column_name}))+
-                  SIN(#{lat})*SIN(RADIANS(#{lat_column_name})))*#{multiplier})
+                  (ACOS(COS(#{lat})*COS(#{lng})*COS(RADIANS(#{qualified_lat_column_name}))*COS(RADIANS(#{qualified_lng_column_name}))+
+                  COS(#{lat})*SIN(#{lng})*COS(RADIANS(#{qualified_lat_column_name}))*SIN(RADIANS(#{qualified_lng_column_name}))+
+                  SIN(#{lat})*SIN(RADIANS(#{qualified_lat_column_name})))*#{multiplier})
                   SQL_END
           else
             sql = "unhandled #{connection.adapter_name.downcase} adapter"
@@ -382,13 +384,13 @@ module GeoKit
           case connection.adapter_name.downcase
           when "mysql"
             sql=<<-SQL_END
-                  SQRT(POW(#{lat_degree_units}*(#{origin.lat}-#{lat_column_name}),2)+
-                  POW(#{lng_degree_units}*(#{origin.lng}-#{lng_column_name}),2))
+                  SQRT(POW(#{lat_degree_units}*(#{origin.lat}-#{qualified_lat_column_name}),2)+
+                  POW(#{lng_degree_units}*(#{origin.lng}-#{qualified_lng_column_name}),2))
                   SQL_END
           when "postgresql"
             sql=<<-SQL_END
-                  SQRT(POW(#{lat_degree_units}*(#{origin.lat}-#{lat_column_name}),2)+
-                  POW(#{lng_degree_units}*(#{origin.lng}-#{lng_column_name}),2))
+                  SQRT(POW(#{lat_degree_units}*(#{origin.lat}-#{qualified_lat_column_name}),2)+
+                  POW(#{lng_degree_units}*(#{origin.lng}-#{qualified_lng_column_name}),2))
                   SQL_END
           else
             sql = "unhandled #{connection.adapter_name.downcase} adapter"
@@ -401,7 +403,7 @@ module GeoKit
         def extract_latitude(point)
           return point.lat if point.respond_to?(:lat)
           return point.latitude if point.respond_to?(:latitude)
-          return point.send(lat_column_name) if point.instance_of?(self)
+          return point.send(qualified_lat_column_name) if point.instance_of?(self)
         end
         
         # Extract the longitude from the origin by trying the lng or longitude methods first
@@ -425,4 +427,19 @@ module GeoKit
       end
     end
   end
-end 
+end
+
+# Extend Array with a sort_by_distance method.
+# This method creates a "distance" attribute on each object, 
+# calculates the distance from the passed origin,
+# and finally sorts the array by the resulting distance.
+class Array
+  def sort_by_distance_from(origin, opts={})
+    distance_attribute_name = opts.delete(:distance_attribute_name) || 'distance'
+    self.each do |e|
+      e.class.send(:attr_accessor, distance_attribute_name) if !e.respond_to? "#{distance_attribute_name}="
+      e.send("#{distance_attribute_name}=", origin.distance_to(e,opts))
+    end
+    self.sort!{|a,b|a.send(distance_attribute_name) <=> b.send(distance_attribute_name)}
+  end
+end
