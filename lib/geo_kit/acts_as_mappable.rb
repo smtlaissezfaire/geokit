@@ -213,9 +213,20 @@ module GeoKit
           substitute_distance_in_conditions(options, origin, units, formula) if origin && options.has_key?(:conditions)
           # Order by scoping for find action.
           apply_find_scope(args, options) if action == :find
+          # Unfortunatley, we need to do extra work if you use an :include. See the method for more info.
+          handle_order_with_include(options,origin,units,formula) if options.include?(:include) && options.include?(:order) && origin
           # Restore options minus the extra options that we used for the
           # GeoKit API.
           args.push(options)   
+        end
+        
+        # If we're here, it means that 1) an origin argument, 2) an :include, 3) an :order clause were supplied.
+        # Now we have to sub some SQL into the :order clause. The reason is that when you do an :include,
+        # ActiveRecord drops the psuedo-column (specificically, distance) which we supplied for :select. 
+        # So, the 'distance' column isn't available for the :order clause to reference when we use :include.
+        def handle_order_with_include(options, origin, units, formula)
+          # replace the distance_column_name with the distance sql in order clause
+          options[:order].sub!(distance_column_name, distance_sql(origin, units, formula))
         end
         
         # Looks for mapping-specific tokens and makes appropriate translations so that the 
@@ -435,7 +446,7 @@ end
 # and finally sorts the array by the resulting distance.
 class Array
   def sort_by_distance_from(origin, opts={})
-    distance_attribute_name = opts.delete(:distance_attribute_name) || 'distance'
+    distance_attribute_name = opts.delete(:distance_attribute_name) || 'distance'    
     self.each do |e|
       e.class.send(:attr_accessor, distance_attribute_name) if !e.respond_to? "#{distance_attribute_name}="
       e.send("#{distance_attribute_name}=", origin.distance_to(e,opts))
