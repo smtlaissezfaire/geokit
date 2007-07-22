@@ -399,6 +399,7 @@ module GeoKit
       
       # returns an instance of bounds which completely encompases the given circle
       def from_point_and_radius(point,radius,options={})
+        point=LatLng.normalize(point)
         p0=point.endpoint(0,radius,options)
         p90=point.endpoint(90,radius,options)
         p180=point.endpoint(180,radius,options)

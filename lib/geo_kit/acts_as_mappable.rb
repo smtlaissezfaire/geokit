@@ -204,6 +204,8 @@ module GeoKit
           units = extract_units_from_options(options)
           formula = extract_formula_from_options(options)
           bounds = extract_bounds_from_options(options)
+          # if no explicit bounds were given, try formulating them from the point and distance given
+          bounds = formulate_bounds_from_distance(options, origin, units) unless bounds
           # Apply select adjustments based upon action.
           add_distance_to_select(options, origin, units, formula) if origin && action == :find
           # Apply the conditions for a bounding rectangle if applicable
@@ -242,6 +244,18 @@ module GeoKit
               args[0] = :first
               options[:limit] = 1
               options[:order] = "#{distance_column_name} DESC"
+          end
+        end
+        
+        # If it's a :within query, add a bounding box to improve performance.
+        # This only gets called if a :bounds argument is not otherwise supplied. 
+        def formulate_bounds_from_distance(options, origin, units)
+          distance = options[:within] if options.has_key?(:within)
+          distance = options[:range].last-(options[:range].exclude_end?? 1 : 0) if options.has_key?(:range)
+          if distance
+            res=GeoKit::Bounds.from_point_and_radius(origin,distance,:units=>units)
+          else 
+            nil
           end
         end
         

@@ -65,7 +65,11 @@ class BoundsTest < Test::Unit::TestCase #:nodoc: all
   end  
   
   def test_creation_from_circle
-    #TODO -- add this test
+    bounds=GeoKit::Bounds.from_point_and_radius([32.939829, -96.951176],2.5)
+    inside=GeoKit::LatLng.new 32.9695270000,-96.9901590000
+    outside=GeoKit::LatLng.new 32.8951550000,-96.9584440000
+    assert bounds.contains?(inside)
+    assert !bounds.contains?(outside)
   end
   
 end
