@@ -48,15 +48,14 @@ You can also do:
     location.distance_to(other)
 
 The real power and utility of the plug-in is in its query support.  This is 
-achieved through mixing into an ActiveRecord model object.  Doing so, looks 
-as below:
+achieved through mixing into an ActiveRecord model object:
 
     class Location < ActiveRecord::Base
     	acts_as_mappable
     end
 
 The plug-in uses the above-mentioned defaults, but can be modified to use 
-different units and a different formula.  This is done through the :default_units
+different units and a different formulae.  This is done through the :default_units
 and :default_formula keys which accept the same values as mentioned above.
 
 The plug-in creates a calculated column and potentially a calculated condition.  
@@ -92,15 +91,23 @@ specified for lng_column_name and lat_column_name:
 
 		find(:all, :origin=>my_store) # my_store.lat and my_store.lng methods exist
 
-In addition to adding a distance column, substitutes the distance
-formula for the distance field in the conditions clause.  This saves
-from having to add complicated SQL in the conditions clause.  The result
-set returns model instances that are less than 5 units away.
+Often you will need to find within a certain distance. The prefered syntax is:
 
+    find(:all, :origin => @somewhere, :within => 5)
+    
+. . . however these syntaxes will also work:
+
+    find_within(5, :origin => @somewhere)
     find(:all, :origin => @somewhere, :conditions => "distance < 5")
+    
+Note however that the third form should be avoided. With either of the first two,
+GeoKit automatically adds a bounding box to speed up the radial query in the database.
+With the third form, it does not.
 
-NOTE: conditions can also be compound as in 
-:conditions => "distance < 100 and state ='TX'".
+If you need to combine distance conditions with other conditions, you should do
+so like this:
+
+    find(:all, :origin => @somewhere, :within => 5, :conditions=>['state=?',state])
 
 If :origin is not provided in the finder call, the find method 
 works as normal.  Further, the key is removed
@@ -130,6 +137,37 @@ the finders.  So for instance:
     count(:origin, :conditions => "distance < 5")
     count_within(distance, :origin => @somewhere)
     count_beyond(distance, :origin => @somewhere)
+
+## FINDING WITHIN A BOUNDING BOX
+ 
+If you are displaying points on a map, you probably need to query for whatever falls within the rectangular bounds of the map:
+
+    Store.find :all, :bounds=>[sw_point,ne_point]
+
+The input to :bounds can be array with the two points or a Bounds object. However you provide them, the order should always be the southwest corner, northeast corner of the rectangle. Typically, you will be getting the sw_point and ne_point from a map that is displayed on a web page.
+
+If you need to calculate the bounding box from a point and radius, you can do that:
+
+    bounds=Bounds.from_point_and_radius(home,5)
+    Store.find :all, :bounds=>bounds
+
+## USING INCLUDES
+
+You can use includes along with your distance finders:
+
+    stores=Store.find :all, :origin=>home, :include=>[:reviews,:cities] :within=>5, :order=>'distance'
+
+*However*, ActiveRecord drops the calculated distance column when you use include. So, if you need to
+use the distance column, you'll have to re-calculate it post-query in Ruby:
+
+    stores.sort_by_distance_from(home)
+
+In this case, you may want to just use the bounding box
+condition alone in your SQL (there's no use calculating the distance twice):
+
+    bounds=Bounds.from_point_and_radius(home,5)
+    stores=Store.find :all, :include=>[:reviews,:cities] :bounds=>bounds
+    stores.sort_by_distance_from(home)
 
 ## IP GEOCODING
 
@@ -252,6 +290,52 @@ ActiveRecord::GeocodeError you must be prepared to catch. Alternatively,
 You can geocoder the address beforehand, and pass the resulting lat/lng
 into the finder if successful.
 
+## Auto Geocoding
+
+If your geocoding needs are simple, you can tell your model to automatically
+geocode itself on create:
+
+    class Store < ActiveRecord::Base
+      acts_as_mappable :auto_geocode=>true
+    end
+
+It takes two optional params:
+
+    class Store < ActiveRecord::Base
+      acts_as_mappable :auto_geocode=>{:field=>:address, :error_message=>'Could not geocode address'}
+    end
+
+. . . which is equivilent to:
+
+    class Store << ActiveRecord::Base
+      acts_as_mappable
+      before_validation_on_create :geocode_address
+
+      private
+      def geocode_address
+        geo=GeoKit::Geocoders::MultiGeocoder.geocode (address)
+        errors.add(:address, "Could not Geocode address") if !geo.success
+        self.lat, self.lng = geo.lat,geo.lng if geo.success
+      end
+    end
+    
+If you need any more complicated geocoding behavior for your model, you should roll your own 
+before_validate callback.
+
+
+## Distances, headings, endpoints, and midpoints
+
+    distance=home.distance_from(work, :units=>:miles)
+    heading=home.heading_to(work) # result is in degrees, 0 is north
+    endpoint=home.endpoint(90,2)  # two miles due east
+    midpoing=home.midpoint_to(work)
+
+## Cool stuff you can do with bounds
+    
+    bounds=Bounds.new(sw_point,ne_point)
+    bounds.contains?(home)
+    puts bounds.center
+    
 
 HOW TO . . .
 =================================================================================
@@ -272,7 +356,7 @@ HOW TO . . .
        ...
     end
 3. finders now have extra capabilities:
-    Store.find(:all, :origin =>[32.951613,-96.958444], :conditions=>'distance<10')
+    Store.find(:all, :origin =>[32.951613,-96.958444], :within=>10)
 
 ## How to geocode an address
 
@@ -301,7 +385,7 @@ HOW TO . . .
 
 3. pass the address in under the :origin key
 		Store.find(:all, :origin=>'100 Spear st, San Francisco, CA', 
-		           :conditions=>'distance<10')
+		           :within=>10)
 
 4. you can also use a zipcode, or anything else that's geocodable:
 		Store.find(:all, :origin=>'94117', 
@@ -312,7 +396,19 @@ HOW TO . . .
 You now have access to a 'distance' column, and you can use it
 as you would any other column. For example:
 		Store.find(:all, :origin=>'94117', :order=>'distance')
-		
+
+## How to elements of an array according to distance from a common point
+
+Usually, you can do your sorting in the database as part of your find call.
+If you need to sort things post-query, you can do so:
+
+    stores=Store.find :all
+    stores.sort_by_distance_from(home)
+    puts stores.first.distance
+    
+Obviously, each of the items in the array must have a latitude/longitude so
+they can be sorted by distance.
+
 
 HIGH-LEVEL NOTES ON WHAT'S WHERE
 =================================================================================
@@ -325,7 +421,7 @@ mappable.rb contains the Mappable module, which provides basic
 distance calculation methods, i.e., calculating the distance
 between two points. 
 
-mappable.rb also contains LatLng and GeoLoc.
+mappable.rb also contains LatLng, GeoLoc, and Bounds.
 LatLng is a simple container for latitude and longitude, but 
 it's made more powerful by mixing in the above-mentioned Mappable
 module -- therefore, you can calculate easily the distance between two
