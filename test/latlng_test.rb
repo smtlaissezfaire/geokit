@@ -67,4 +67,46 @@ class LatLngTest < Test::Unit::TestCase #:nodoc: all
     assert_in_delta 3.97, @point.distance_to(@loc_e, :units => :miles, :formula => :flat), 0.2
     assert_in_delta 6.39, @point.distance_to(@loc_e, :units => :kms, :formula => :flat), 0.4
   end
+  
+  def test_heading_between
+    assert_in_delta 332, GeoKit::LatLng.heading_between(@loc_a,@loc_e), 0.5
+  end
+
+  def test_heading_to
+    assert_in_delta 332, @loc_a.heading_to(@loc_e), 0.5
+  end  
+  
+  def test_class_endpoint
+    endpoint=GeoKit::LatLng.endpoint(@loc_a, 332, 3.97)
+    assert_in_delta @loc_e.lat, endpoint.lat, 0.0005
+    assert_in_delta @loc_e.lng, endpoint.lng, 0.0005
+  end
+
+  def test_instance_endpoint
+    endpoint=@loc_a.endpoint(332, 3.97)
+    assert_in_delta @loc_e.lat, endpoint.lat, 0.0005
+    assert_in_delta @loc_e.lng, endpoint.lng, 0.0005
+  end  
+  
+  def test_midpoint
+    midpoint=@loc_a.midpoint_to(@loc_e)
+    assert_in_delta 32.944061, midpoint.lat, 0.0005
+    assert_in_delta -96.974296, midpoint.lng, 0.0005    
+  end  
+  
+  def test_normalize
+    lat=37.7690
+    lng=-122.443
+    res=GeoKit::LatLng.normalize(lat,lng)
+    assert_equal res,GeoKit::LatLng.new(lat,lng) 
+    res=GeoKit::LatLng.normalize("#{lat}, #{lng}")
+    assert_equal res,GeoKit::LatLng.new(lat,lng) 
+    res=GeoKit::LatLng.normalize("#{lat} #{lng}")
+    assert_equal res,GeoKit::LatLng.new(lat,lng)
+    res=GeoKit::LatLng.normalize("#{lat.to_i} #{lng.to_i}")
+    assert_equal res,GeoKit::LatLng.new(lat.to_i,lng.to_i)    
+    res=GeoKit::LatLng.normalize([lat,lng])
+    assert_equal res,GeoKit::LatLng.new(lat,lng)
+  end
+    
 end

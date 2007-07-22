@@ -278,8 +278,9 @@ module GeoKit
         # Alters the conditions to include rectangular bounds conditions.
         # NOTE: does not account for international date line yet.
         def apply_bounds_conditions(options,bounds)
-          sw,ne=bounds
-          bounds_sql="#{qualified_lat_column_name}>#{sw.lat} AND #{qualified_lat_column_name}<#{ne.lat} AND #{qualified_lng_column_name}>#{sw.lng} AND #{qualified_lng_column_name}<#{ne.lng}"
+          sw,ne=bounds.sw,bounds.ne
+          lng_sql= bounds.crosses_meridian? ? "{qualified_lng_column_name}<#{sw.lng} OR #{qualified_lng_column_name}>#{ne.lng}" : "#{qualified_lng_column_name}>#{sw.lng} AND #{qualified_lng_column_name}<#{ne.lng}"
+          bounds_sql="#{qualified_lat_column_name}>#{sw.lat} AND #{qualified_lat_column_name}<#{ne.lat} AND #{lng_sql}"
           options[:conditions]=augment_conditions(options[:conditions],bounds_sql)          
         end
 
@@ -313,31 +314,25 @@ module GeoKit
         
         def extract_bounds_from_options(options)
           bounds = options.delete(:bounds)
-          bounds.map{|point|normalize_point_to_lat_lng(point)} if bounds
+          bounds = GeoKit::Bounds.normalize(bounds) if bounds
         end
-        
-        # Geocodes the origin which was passed in String form.  The string needs
-        # to be classified so that the appropriate geocoding technique can be 
-        # used.  Strings can be either IP addresses or physical addresses.  The
-        # result is a LatLng which substitutes in for the origin.
-        def geocode_origin(origin)
-          geo_origin = geocode_ip_address(origin) if /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})?$/.match(origin)
-          geo_origin = geocode_physical_address(origin) unless geo_origin
-          geo_origin
-        end
-
-       # Geocode IP address.
+       
+        # Geocode IP address.
         def geocode_ip_address(origin)
           geo_location = GeoKit::Geocoders::IpGeocoder.geocode(origin)
           return geo_location if geo_location.success
           raise GeoKit::Geocoders::GeocodeError
         end
         
-        # Geocode physical address.
-        def geocode_physical_address(origin)
-          res = GeoKit::Geocoders::MultiGeocoder.geocode(origin)
-          return res if res.success
-          raise GeoKit::Geocoders::GeocodeError 
+
+        # Given a point in a variety of (an address to geocode,
+        # an array of [lat,lng], or an object with appropriate lat/lng methods, an IP addres)
+        # this method will normalize it into a GeoKit::LatLng instance. The only thing this
+        # method adds on top of LatLng#normalize is handling of IP addresses
+        def normalize_point_to_lat_lng(point)
+          res = geocode_ip_address(point) if point.is_a?(String) && /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})?$/.match(point)
+          res = GeoKit::LatLng.normalize(point) unless res
+          res       
         end
 
         # Augments the select with the distance SQL.
@@ -406,34 +401,6 @@ module GeoKit
           else
             sql = "unhandled #{connection.adapter_name.downcase} adapter"
           end
-        end
-        
-        # Extract the latitude from the point by trying the lat or latitude methods first
-        # and then making the assumption this is an instance of the kind of classes we are
-        # trying to find.
-        def extract_latitude(point)
-          return point.lat if point.respond_to?(:lat)
-          return point.latitude if point.respond_to?(:latitude)
-          return point.send(qualified_lat_column_name) if point.instance_of?(self)
-        end
-        
-        # Extract the longitude from the origin by trying the lng or longitude methods first
-        # and then making the assumption this is an instance of the kind of classes we are
-        # trying to find.
-        def extract_longitude(point)
-          return point.lng if point.respond_to?(:lng)
-          return point.longitude if point.respond_to?(:longitude)
-          return point.send(lng_column_name) if point.instance_of?(self)
-        end
-        
-        # Given a point in any of three formats (an address to geocode,
-        # an array of [lat,lng], or an object with appropriate lat/lng methods)
-        # this method will normalize it into a GeoKit::LatLng instance.
-        def normalize_point_to_lat_lng(point)
-          res = geocode_origin(point) if point.is_a?(String)
-          res = GeoKit::LatLng.new(point[0], point[1]) if point.is_a?(Array)
-          res = GeoKit::LatLng.new(extract_latitude(point), extract_longitude(point)) unless res
-          res       
         end
       end
     end
