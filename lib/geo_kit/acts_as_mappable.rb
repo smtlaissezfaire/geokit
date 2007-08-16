@@ -290,10 +290,9 @@ module GeoKit
         end
 
         # Alters the conditions to include rectangular bounds conditions.
-        # NOTE: does not account for international date line yet.
         def apply_bounds_conditions(options,bounds)
           sw,ne=bounds.sw,bounds.ne
-          lng_sql= bounds.crosses_meridian? ? "{qualified_lng_column_name}<#{sw.lng} OR #{qualified_lng_column_name}>#{ne.lng}" : "#{qualified_lng_column_name}>#{sw.lng} AND #{qualified_lng_column_name}<#{ne.lng}"
+          lng_sql= bounds.crosses_meridian? ? "#{qualified_lng_column_name}<#{sw.lng} OR #{qualified_lng_column_name}>#{ne.lng}" : "#{qualified_lng_column_name}>#{sw.lng} AND #{qualified_lng_column_name}<#{ne.lng}"
           bounds_sql="#{qualified_lat_column_name}>#{sw.lat} AND #{qualified_lat_column_name}<#{ne.lat} AND #{lng_sql}"
           options[:conditions]=augment_conditions(options[:conditions],bounds_sql)          
         end
