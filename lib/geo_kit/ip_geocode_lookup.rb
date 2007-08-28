@@ -14,7 +14,7 @@ module GeoKit
     # Class method to mix into active record.
     module ClassMethods # :nodoc:
       def geocode_ip_address(filter_options = {})
-        before_filter :store_ip_location
+        before_filter :store_ip_location, filter_options
       end
     end
  
