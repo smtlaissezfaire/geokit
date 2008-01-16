@@ -33,6 +33,7 @@ module GeoKit
       def distance_between(from, to, options={})
         from=GeoKit::LatLng.normalize(from)
         to=GeoKit::LatLng.normalize(to)
+        return 0.0 if from == to # fixes a "zero-distance" bug
         units = options[:units] || GeoKit::default_units
         formula = options[:formula] || GeoKit::default_formula
         case formula
