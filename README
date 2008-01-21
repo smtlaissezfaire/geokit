@@ -409,6 +409,12 @@ If you need to sort things post-query, you can do so:
 Obviously, each of the items in the array must have a latitude/longitude so
 they can be sorted by distance.
 
+Database Compatability
+=================================================================================
+GeoKit does *not* work with SQLite, as it lacks the necessary geometry functions. 
+GeoKit works with MySQL (tested with version 5.0.41) or PostgreSQL (tested with version 8.2.6)
+GeoKit is known to *not* work with Postgres <8.1 -- it uses the least() funciton.
+
 
 HIGH-LEVEL NOTES ON WHAT'S WHERE
 =================================================================================

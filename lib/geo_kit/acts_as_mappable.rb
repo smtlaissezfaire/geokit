@@ -380,15 +380,15 @@ module GeoKit
           case connection.adapter_name.downcase
           when "mysql"
             sql=<<-SQL_END 
-                  (ACOS(COS(#{lat})*COS(#{lng})*COS(RADIANS(#{qualified_lat_column_name}))*COS(RADIANS(#{qualified_lng_column_name}))+
+                  (ACOS(least(1,COS(#{lat})*COS(#{lng})*COS(RADIANS(#{qualified_lat_column_name}))*COS(RADIANS(#{qualified_lng_column_name}))+
                   COS(#{lat})*SIN(#{lng})*COS(RADIANS(#{qualified_lat_column_name}))*SIN(RADIANS(#{qualified_lng_column_name}))+
-                  SIN(#{lat})*SIN(RADIANS(#{qualified_lat_column_name})))*#{multiplier})
+                  SIN(#{lat})*SIN(RADIANS(#{qualified_lat_column_name}))))*#{multiplier})
                   SQL_END
           when "postgresql"
             sql=<<-SQL_END 
-                  (ACOS(COS(#{lat})*COS(#{lng})*COS(RADIANS(#{qualified_lat_column_name}))*COS(RADIANS(#{qualified_lng_column_name}))+
+                  (ACOS(least(1,COS(#{lat})*COS(#{lng})*COS(RADIANS(#{qualified_lat_column_name}))*COS(RADIANS(#{qualified_lng_column_name}))+
                   COS(#{lat})*SIN(#{lng})*COS(RADIANS(#{qualified_lat_column_name}))*SIN(RADIANS(#{qualified_lng_column_name}))+
-                  SIN(#{lat})*SIN(RADIANS(#{qualified_lat_column_name})))*#{multiplier})
+                  SIN(#{lat})*SIN(RADIANS(#{qualified_lat_column_name}))))*#{multiplier})
                   SQL_END
           else
             sql = "unhandled #{connection.adapter_name.downcase} adapter"
